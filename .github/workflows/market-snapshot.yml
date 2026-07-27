@@ -1,5 +1,8 @@
 name: SIGNAL60 V2 snapshot
 on:
+  push:
+    branches: [main]
+    paths: ["runner/**", "tests/**", ".github/workflows/market-snapshot.yml"]
   workflow_dispatch:
   schedule:
     - cron: "2-57/5 * * * *"
