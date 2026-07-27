@@ -1,0 +1,33 @@
+name: SIGNAL60 24-7 Runner
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: signal60-market-cycle
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  market-cycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Check out runner
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run authenticated Binance cycle
+        run: node runner/signal60-runner.mjs
+        env:
+          SIGNAL60_SITE_URL: https://binance-hourly-heatmap.burakturan000.chatgpt.site
+          SIGNAL60_RUNNER_ID: github-actions-v1
