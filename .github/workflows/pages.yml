@@ -1,11 +1,20 @@
 name: Deploy SIGNAL60 V2 Pages
+
 on:
   push:
     branches: [main]
     paths: ["docs/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
-permissions: {contents: write, pages: write, id-token: write}
-concurrency: {group: pages, cancel-in-progress: true}
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
 jobs:
   deploy:
     environment:
@@ -14,17 +23,61 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Enable GitHub Pages for Actions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/pages"
+          common=(-H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${GH_TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28")
+          status=$(curl -sS -o /tmp/pages.json -w '%{http_code}' "${common[@]}" "$api")
+          if [ "$status" = "404" ]; then
+            status=$(curl -sS -o /tmp/pages-create.json -w '%{http_code}' -X POST "${common[@]}" "$api" -d '{"build_type":"workflow"}')
+            if [ "$status" != "201" ] && [ "$status" != "409" ]; then
+              cat /tmp/pages-create.json
+              echo "Could not enable GitHub Pages (HTTP $status)" >&2
+              exit 1
+            fi
+          elif [ "$status" = "200" ]; then
+            status=$(curl -sS -o /tmp/pages-update.json -w '%{http_code}' -X PUT "${common[@]}" "$api" -d '{"build_type":"workflow"}')
+            if [ "$status" != "204" ]; then
+              cat /tmp/pages-update.json
+              echo "Could not set GitHub Pages build type (HTTP $status)" >&2
+              exit 1
+            fi
+          else
+            cat /tmp/pages.json
+            echo "Could not inspect GitHub Pages (HTTP $status)" >&2
+            exit 1
+          fi
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
-        with: {path: docs}
+        with:
+          path: docs
       - id: deployment
         uses: actions/deploy-pages@v4
-      - name: Record successful deployment
+
+      - name: Verify and record live deployment
         run: |
-          printf '{"deployedAt":"%s","url":"%s","sha":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${{ steps.deployment.outputs.page_url }}" "$GITHUB_SHA" > .pages-deployment.json
+          set -euo pipefail
+          page_url="${{ steps.deployment.outputs.page_url }}"
+          for attempt in $(seq 1 12); do
+            if curl -fsSL --max-time 15 "$page_url" | grep -q "SIGNAL60"; then
+              break
+            fi
+            if [ "$attempt" = "12" ]; then
+              echo "Published URL did not return the SIGNAL60 page: $page_url" >&2
+              exit 1
+            fi
+            sleep 5
+          done
+          printf '{"deployedAt":"%s","url":"%s","sha":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$page_url" "$GITHUB_SHA" > PAGES_LIVE.txt
           git config user.name signal60-v2-bot
           git config user.email signal60-v2-bot@users.noreply.github.com
-          git add .pages-deployment.json
+          git pull --rebase origin main
+          git add PAGES_LIVE.txt
           git diff --cached --quiet && exit 0
-          git commit -m "Record SIGNAL60 V2 Pages deployment"
+          git commit -m "Record verified SIGNAL60 V2 Pages URL"
           git push
