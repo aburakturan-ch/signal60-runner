@@ -16,7 +16,7 @@ started manually. It:
 
 No long-lived repository secret is required. The workflow requests a
 short-lived GitHub Actions OIDC identity token, and the site accepts it only
-when it was issued for `aburakturan-ch/signal60-runner`, the `main` branch, and either
-the scheduled or manual workflow event. GitHub schedule delivery can
+when it was issued for `aburakturan-ch/signal60-runner`, the `main` branch, and
+a push, scheduled, or manual workflow event. GitHub schedule delivery can
 occasionally be delayed; the dashboard marks the runner stale after twelve
 minutes and never executes a trade from a public read.
