@@ -5,7 +5,8 @@ on:
     branches:
       - main
   schedule:
-    - cron: "*/5 * * * *"
+    # Offset from the top-of-hour congestion window while keeping a 5-minute cadence.
+    - cron: "3-58/5 * * * *"
   workflow_dispatch:
 
 concurrency:
