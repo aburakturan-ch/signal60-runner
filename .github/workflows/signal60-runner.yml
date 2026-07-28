@@ -32,66 +32,8 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Build active paper-trading runner
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          src = Path("runner/signal60-runner.mjs").read_text()
-
-          marker = "const KLINE_BATCH_SIZE = 4;"
-          assert marker in src
-          policy_lines = [
-              "const POLICY_OVERRIDES = {",
-              "  maxOrderUsd: 5,",
-              "  maxAssetExposureUsd: 10,",
-              "  maxOpenPositions: 12,",
-              "  maxPortfolioExposurePct: 80,",
-              "  stopLossPct: -1.5,",
-              "  takeProfitPct: 2.5,",
-              "  cooldownMinutes: 5,",
-              "  minimumVerifiedSamples: 20,",
-              "  minimumVerifiedAccuracyPct: 48,",
-              "  minimumNetEdgePct: 0,",
-              "};",
-              "const TARGET_DEEP_PAIRS = 60;",
-          ]
-          src = src.replace(marker, marker + "\n" + "\n".join(policy_lines), 1)
-
-          plan_marker = "  if (!Array.isArray(plan.pairs) || plan.pairs.length < 8) {\n    throw new Error(\"SIGNAL/60 returned an incomplete deep-model plan\");\n  }\n"
-          assert plan_marker in src
-          expansion_lines = [
-              "",
-              "  const plannedSymbols = new Set(plan.pairs.map((row) => row?.pair).filter(Boolean));",
-              "  const liquidFallbacks = [...tickers]",
-              "    .sort((a, b) => Number(b.quoteVolume) - Number(a.quoteVolume))",
-              "    .map((row) => row.symbol)",
-              "    .filter((symbol) => /^[A-Z0-9]+USDT$/.test(symbol));",
-              "  for (const pair of liquidFallbacks) {",
-              "    if (plan.pairs.length >= TARGET_DEEP_PAIRS) break;",
-              "    if (!plannedSymbols.has(pair)) {",
-              "      plan.pairs.push({ pair });",
-              "      plannedSymbols.add(pair);",
-              "    }",
-              "  }",
-              "",
-          ]
-          src = src.replace(plan_marker, plan_marker + "\n".join(expansion_lines), 1)
-
-          plan_payload = "    tickers,\n  });"
-          assert plan_payload in src
-          src = src.replace(plan_payload, "    tickers,\n    policy: POLICY_OVERRIDES,\n  });", 1)
-
-          execute_payload = "      datasets,\n    },"
-          assert execute_payload in src
-          src = src.replace(execute_payload, "      datasets,\n      policy: POLICY_OVERRIDES,\n    },", 1)
-
-          Path("/tmp/signal60-active-runner.mjs").write_text(src)
-          PY
-          node --check /tmp/signal60-active-runner.mjs
-
       - name: Run authenticated Binance cycle
-        run: node /tmp/signal60-active-runner.mjs
+        run: node runner/signal60-runner.mjs
         env:
           SIGNAL60_SITE_URL: https://binance-hourly-heatmap.burakturan000.chatgpt.site
           SIGNAL60_RUNNER_ID: github-actions-v1
