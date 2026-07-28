@@ -1,6 +1,97 @@
 {
-  "total_count": 0,
+  "total_count": 1,
   "jobs": [
-
+    {
+      "id": 90152944386,
+      "run_id": 30319749127,
+      "workflow_name": "SIGNAL60 24-7 Runner",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/aburakturan-ch/signal60-runner/actions/runs/30319749127",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOTkn-_s8AAAAU_YjDAg",
+      "head_sha": "d44e7f207c24467e3de1c115e8200aea629d776b",
+      "url": "https://api.github.com/repos/aburakturan-ch/signal60-runner/actions/jobs/90152944386",
+      "html_url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30319749127/job/90152944386",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-07-28T01:15:43Z",
+      "started_at": "2026-07-28T01:15:45Z",
+      "completed_at": "2026-07-28T01:16:01Z",
+      "name": "market-cycle",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-07-28T01:15:46Z",
+          "completed_at": "2026-07-28T01:15:46Z"
+        },
+        {
+          "name": "Check out runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-07-28T01:15:46Z",
+          "completed_at": "2026-07-28T01:15:47Z"
+        },
+        {
+          "name": "Use Node.js 22",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-07-28T01:15:47Z",
+          "completed_at": "2026-07-28T01:15:50Z"
+        },
+        {
+          "name": "Build active paper-trading runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-07-28T01:15:50Z",
+          "completed_at": "2026-07-28T01:15:50Z"
+        },
+        {
+          "name": "Run authenticated Binance cycle",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-07-28T01:15:50Z",
+          "completed_at": "2026-07-28T01:15:59Z"
+        },
+        {
+          "name": "Post Use Node.js 22",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-07-28T01:15:59Z",
+          "completed_at": "2026-07-28T01:15:59Z"
+        },
+        {
+          "name": "Post Check out runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-07-28T01:15:59Z",
+          "completed_at": "2026-07-28T01:15:59Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-07-28T01:15:59Z",
+          "completed_at": "2026-07-28T01:15:59Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/aburakturan-ch/signal60-runner/check-runs/90152944386",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000000222,
+      "runner_name": "GitHub Actions 1000000222",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
   ]
 }

@@ -1,6 +1,16 @@
 {
-  "capturedAt": "2026-07-28T01:13:40.741Z",
+  "capturedAt": "2026-07-28T01:16:05.110Z",
   "runs": [
+    {
+      "id": 30319749127,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-07-28T01:15:42Z",
+      "updatedAt": "2026-07-28T01:16:01Z",
+      "headSha": "d44e7f207c24467e3de1c115e8200aea629d776b",
+      "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30319749127"
+    },
     {
       "id": 30319481077,
       "event": "push",
@@ -90,17 +100,82 @@
       "updatedAt": "2026-07-28T00:35:39Z",
       "headSha": "6e68d12ea1dbd7bc28dab9bf00fcf68342f2b317",
       "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30317740084"
-    },
-    {
-      "id": 30317503823,
-      "event": "workflow_dispatch",
-      "status": "completed",
-      "conclusion": "success",
-      "createdAt": "2026-07-28T00:30:29Z",
-      "updatedAt": "2026-07-28T00:30:50Z",
-      "headSha": "6e68d12ea1dbd7bc28dab9bf00fcf68342f2b317",
-      "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30317503823"
     }
   ],
-  "jobs": []
+  "jobs": [
+    {
+      "id": 90152944386,
+      "name": "market-cycle",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-07-28T01:15:45Z",
+      "completedAt": "2026-07-28T01:16:01Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-07-28T01:15:46Z",
+          "completed_at": "2026-07-28T01:15:46Z"
+        },
+        {
+          "name": "Check out runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-07-28T01:15:46Z",
+          "completed_at": "2026-07-28T01:15:47Z"
+        },
+        {
+          "name": "Use Node.js 22",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-07-28T01:15:47Z",
+          "completed_at": "2026-07-28T01:15:50Z"
+        },
+        {
+          "name": "Build active paper-trading runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-07-28T01:15:50Z",
+          "completed_at": "2026-07-28T01:15:50Z"
+        },
+        {
+          "name": "Run authenticated Binance cycle",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-07-28T01:15:50Z",
+          "completed_at": "2026-07-28T01:15:59Z"
+        },
+        {
+          "name": "Post Use Node.js 22",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-07-28T01:15:59Z",
+          "completed_at": "2026-07-28T01:15:59Z"
+        },
+        {
+          "name": "Post Check out runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-07-28T01:15:59Z",
+          "completed_at": "2026-07-28T01:15:59Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-07-28T01:15:59Z",
+          "completed_at": "2026-07-28T01:15:59Z"
+        }
+      ]
+    }
+  ]
 }

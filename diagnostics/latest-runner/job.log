@@ -1,0 +1,208 @@
+﻿2026-07-28T01:15:46.2683045Z Current runner version: '2.336.0'
+2026-07-28T01:15:46.2708800Z ##[group]Runner Image Provisioner
+2026-07-28T01:15:46.2709641Z Hosted Compute Agent
+2026-07-28T01:15:46.2710248Z Version: 20260707.563
+2026-07-28T01:15:46.2710934Z Commit: 02667638d2b423fbc733a8e32a88b44996a3ba6e
+2026-07-28T01:15:46.2711659Z Build Date: 2026-07-07T19:33:50Z
+2026-07-28T01:15:46.2712358Z Worker ID: {4ca83552-73e8-4c0d-9f57-43ab63ce8dd1}
+2026-07-28T01:15:46.2713122Z Azure Region: eastus
+2026-07-28T01:15:46.2713916Z ##[endgroup]
+2026-07-28T01:15:46.2715478Z ##[group]Operating System
+2026-07-28T01:15:46.2716129Z Ubuntu
+2026-07-28T01:15:46.2716672Z 24.04.4
+2026-07-28T01:15:46.2717295Z LTS
+2026-07-28T01:15:46.2717799Z ##[endgroup]
+2026-07-28T01:15:46.2718330Z ##[group]Runner Image
+2026-07-28T01:15:46.2718982Z Image: ubuntu-24.04
+2026-07-28T01:15:46.2719568Z Version: 20260720.247.2
+2026-07-28T01:15:46.2720836Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260720.247/images/ubuntu/Ubuntu2404-Readme.md
+2026-07-28T01:15:46.2722434Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260720.247
+2026-07-28T01:15:46.2723412Z ##[endgroup]
+2026-07-28T01:15:46.2725064Z ##[group]GITHUB_TOKEN Permissions
+2026-07-28T01:15:46.2727182Z Contents: read
+2026-07-28T01:15:46.2727819Z Metadata: read
+2026-07-28T01:15:46.2728784Z ##[endgroup]
+2026-07-28T01:15:46.2731123Z Secret source: Actions
+2026-07-28T01:15:46.2732988Z Prepare workflow directory
+2026-07-28T01:15:46.3062279Z Prepare all required actions
+2026-07-28T01:15:46.3110396Z Getting action download info
+2026-07-28T01:15:46.5004052Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-07-28T01:15:46.7218894Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-07-28T01:15:46.9450740Z Complete job name: market-cycle
+2026-07-28T01:15:47.0293199Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-28T01:15:47.0301762Z ##[group]Run actions/checkout@v4
+2026-07-28T01:15:47.0302508Z with:
+2026-07-28T01:15:47.0302989Z   repository: aburakturan-ch/signal60-runner
+2026-07-28T01:15:47.0307017Z   token: ***
+2026-07-28T01:15:47.0307462Z   ssh-strict: true
+2026-07-28T01:15:47.0307913Z   ssh-user: git
+2026-07-28T01:15:47.0308367Z   persist-credentials: true
+2026-07-28T01:15:47.0308861Z   clean: true
+2026-07-28T01:15:47.0309308Z   sparse-checkout-cone-mode: true
+2026-07-28T01:15:47.0309827Z   fetch-depth: 1
+2026-07-28T01:15:47.0310258Z   fetch-tags: false
+2026-07-28T01:15:47.0310696Z   show-progress: true
+2026-07-28T01:15:47.0311142Z   lfs: false
+2026-07-28T01:15:47.0311593Z   submodules: false
+2026-07-28T01:15:47.0312036Z   set-safe-directory: true
+2026-07-28T01:15:47.0312529Z   allow-unsafe-pr-checkout: false
+2026-07-28T01:15:47.0313314Z ##[endgroup]
+2026-07-28T01:15:47.1330314Z Syncing repository: aburakturan-ch/signal60-runner
+2026-07-28T01:15:47.1332546Z ##[group]Getting Git version info
+2026-07-28T01:15:47.1333358Z Working directory is '/home/runner/work/signal60-runner/signal60-runner'
+2026-07-28T01:15:47.1334818Z [command]/usr/bin/git version
+2026-07-28T01:15:47.1408849Z git version 2.54.0
+2026-07-28T01:15:47.1433225Z ##[endgroup]
+2026-07-28T01:15:47.1449530Z Temporarily overriding HOME='/home/runner/work/_temp/4fda503f-a53b-41b0-be24-b4225c17a7f9' before making global git config changes
+2026-07-28T01:15:47.1452302Z Adding repository directory to the temporary git global config as a safe directory
+2026-07-28T01:15:47.1455752Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/signal60-runner/signal60-runner
+2026-07-28T01:15:47.1512135Z Deleting the contents of '/home/runner/work/signal60-runner/signal60-runner'
+2026-07-28T01:15:47.1517255Z ##[group]Initializing the repository
+2026-07-28T01:15:47.1522396Z [command]/usr/bin/git init /home/runner/work/signal60-runner/signal60-runner
+2026-07-28T01:15:47.1668355Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-07-28T01:15:47.1670115Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-07-28T01:15:47.1672155Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-07-28T01:15:47.1673700Z hint: call:
+2026-07-28T01:15:47.1678843Z hint:
+2026-07-28T01:15:47.1680242Z hint: 	git config --global init.defaultBranch <name>
+2026-07-28T01:15:47.1681811Z hint:
+2026-07-28T01:15:47.1683302Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-07-28T01:15:47.1685600Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-07-28T01:15:47.1687240Z hint:
+2026-07-28T01:15:47.1688457Z hint: 	git branch -m <name>
+2026-07-28T01:15:47.1689727Z hint:
+2026-07-28T01:15:47.1691202Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-07-28T01:15:47.1693012Z Initialized empty Git repository in /home/runner/work/signal60-runner/signal60-runner/.git/
+2026-07-28T01:15:47.1696145Z [command]/usr/bin/git remote add origin https://github.com/aburakturan-ch/signal60-runner
+2026-07-28T01:15:47.1778239Z ##[endgroup]
+2026-07-28T01:15:47.1779680Z ##[group]Disabling automatic garbage collection
+2026-07-28T01:15:47.1782248Z [command]/usr/bin/git config --local gc.auto 0
+2026-07-28T01:15:47.1819682Z ##[endgroup]
+2026-07-28T01:15:47.1820974Z ##[group]Setting up auth
+2026-07-28T01:15:47.1827820Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-07-28T01:15:47.1867707Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-07-28T01:15:47.2275040Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-07-28T01:15:47.2325140Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-07-28T01:15:47.2569401Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-07-28T01:15:47.2611771Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-07-28T01:15:47.2863322Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-07-28T01:15:47.2908490Z ##[endgroup]
+2026-07-28T01:15:47.2922294Z ##[group]Fetching the repository
+2026-07-28T01:15:47.2924096Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +d44e7f207c24467e3de1c115e8200aea629d776b:refs/remotes/origin/main
+2026-07-28T01:15:47.6345327Z From https://github.com/aburakturan-ch/signal60-runner
+2026-07-28T01:15:47.6347442Z  * [new ref]         d44e7f207c24467e3de1c115e8200aea629d776b -> origin/main
+2026-07-28T01:15:47.6392446Z ##[endgroup]
+2026-07-28T01:15:47.6394402Z ##[group]Determining the checkout info
+2026-07-28T01:15:47.6396417Z ##[endgroup]
+2026-07-28T01:15:47.6401782Z [command]/usr/bin/git sparse-checkout disable
+2026-07-28T01:15:47.6454684Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-07-28T01:15:47.6497050Z ##[group]Checking out the ref
+2026-07-28T01:15:47.6500081Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-07-28T01:15:47.6588481Z Switched to a new branch 'main'
+2026-07-28T01:15:47.6590708Z branch 'main' set up to track 'origin/main'.
+2026-07-28T01:15:47.6598067Z ##[endgroup]
+2026-07-28T01:15:47.6638688Z [command]/usr/bin/git log -1 --format=%H
+2026-07-28T01:15:47.6665500Z d44e7f207c24467e3de1c115e8200aea629d776b
+2026-07-28T01:15:47.7040994Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-28T01:15:47.7047288Z ##[group]Run actions/setup-node@v4
+2026-07-28T01:15:47.7048359Z with:
+2026-07-28T01:15:47.7049148Z   node-version: 22
+2026-07-28T01:15:47.7050019Z   always-auth: false
+2026-07-28T01:15:47.7050914Z   check-latest: false
+2026-07-28T01:15:47.7061088Z   token: ***
+2026-07-28T01:15:47.7061926Z ##[endgroup]
+2026-07-28T01:15:47.8562941Z Found in cache @ /opt/hostedtoolcache/node/22.23.1/x64
+2026-07-28T01:15:47.8566348Z (node:2215) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-07-28T01:15:47.8569661Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-07-28T01:15:47.8572089Z ##[group]Environment details
+2026-07-28T01:15:50.5755720Z node: v22.23.1
+2026-07-28T01:15:50.5756277Z npm: 10.9.8
+2026-07-28T01:15:50.5756669Z yarn: 1.22.22
+2026-07-28T01:15:50.5758449Z ##[endgroup]
+2026-07-28T01:15:50.5893911Z ##[group]Run python - <<'PY'
+2026-07-28T01:15:50.5894373Z [36;1mpython - <<'PY'[0m
+2026-07-28T01:15:50.5894687Z [36;1mfrom pathlib import Path[0m
+2026-07-28T01:15:50.5894991Z [36;1m[0m
+2026-07-28T01:15:50.5895321Z [36;1msrc = Path("runner/signal60-runner.mjs").read_text()[0m
+2026-07-28T01:15:50.5961587Z [36;1m[0m
+2026-07-28T01:15:50.5961908Z [36;1mmarker = "const KLINE_BATCH_SIZE = 4;"[0m
+2026-07-28T01:15:50.5962309Z [36;1massert marker in src[0m
+2026-07-28T01:15:50.5962635Z [36;1mpolicy_lines = [[0m
+2026-07-28T01:15:50.5963002Z [36;1m    "const POLICY_OVERRIDES = {",[0m
+2026-07-28T01:15:50.5963681Z [36;1m    "  maxOrderUsd: 5,",[0m
+2026-07-28T01:15:50.5964136Z [36;1m    "  maxAssetExposureUsd: 10,",[0m
+2026-07-28T01:15:50.5964475Z [36;1m    "  maxOpenPositions: 12,",[0m
+2026-07-28T01:15:50.5964824Z [36;1m    "  maxPortfolioExposurePct: 80,",[0m
+2026-07-28T01:15:50.5965200Z [36;1m    "  stopLossPct: -1.5,",[0m
+2026-07-28T01:15:50.5965562Z [36;1m    "  takeProfitPct: 2.5,",[0m
+2026-07-28T01:15:50.5965878Z [36;1m    "  cooldownMinutes: 5,",[0m
+2026-07-28T01:15:50.5966222Z [36;1m    "  minimumVerifiedSamples: 20,",[0m
+2026-07-28T01:15:50.5966587Z [36;1m    "  minimumVerifiedAccuracyPct: 48,",[0m
+2026-07-28T01:15:50.5966942Z [36;1m    "  minimumNetEdgePct: 0,",[0m
+2026-07-28T01:15:50.5967242Z [36;1m    "};",[0m
+2026-07-28T01:15:50.5967512Z [36;1m    "const TARGET_DEEP_PAIRS = 60;",[0m
+2026-07-28T01:15:50.5967827Z [36;1m][0m
+2026-07-28T01:15:50.5968173Z [36;1msrc = src.replace(marker, marker + "\n" + "\n".join(policy_lines), 1)[0m
+2026-07-28T01:15:50.5968591Z [36;1m[0m
+2026-07-28T01:15:50.5969221Z [36;1mplan_marker = "  if (!Array.isArray(plan.pairs) || plan.pairs.length < 8) {\n    throw new Error(\"SIGNAL/60 returned an incomplete deep-model plan\");\n  }\n"[0m
+2026-07-28T01:15:50.5969940Z [36;1massert plan_marker in src[0m
+2026-07-28T01:15:50.5970269Z [36;1mexpansion_lines = [[0m
+2026-07-28T01:15:50.5970549Z [36;1m    "",[0m
+2026-07-28T01:15:50.5970987Z [36;1m    "  const plannedSymbols = new Set(plan.pairs.map((row) => row?.pair).filter(Boolean));",[0m
+2026-07-28T01:15:50.5971558Z [36;1m    "  const liquidFallbacks = [...tickers]",[0m
+2026-07-28T01:15:50.5972002Z [36;1m    "    .sort((a, b) => Number(b.quoteVolume) - Number(a.quoteVolume))",[0m
+2026-07-28T01:15:50.5972432Z [36;1m    "    .map((row) => row.symbol)",[0m
+2026-07-28T01:15:50.5972836Z [36;1m    "    .filter((symbol) => /^[A-Z0-9]+USDT$/.test(symbol));",[0m
+2026-07-28T01:15:50.5973275Z [36;1m    "  for (const pair of liquidFallbacks) {",[0m
+2026-07-28T01:15:50.5973950Z [36;1m    "    if (plan.pairs.length >= TARGET_DEEP_PAIRS) break;",[0m
+2026-07-28T01:15:50.5974390Z [36;1m    "    if (!plannedSymbols.has(pair)) {",[0m
+2026-07-28T01:15:50.5974749Z [36;1m    "      plan.pairs.push({ pair });",[0m
+2026-07-28T01:15:50.5975386Z [36;1m    "      plannedSymbols.add(pair);",[0m
+2026-07-28T01:15:50.5975702Z [36;1m    "    }",[0m
+2026-07-28T01:15:50.5975955Z [36;1m    "  }",[0m
+2026-07-28T01:15:50.5976197Z [36;1m    "",[0m
+2026-07-28T01:15:50.5976424Z [36;1m][0m
+2026-07-28T01:15:50.5976790Z [36;1msrc = src.replace(plan_marker, plan_marker + "\n".join(expansion_lines), 1)[0m
+2026-07-28T01:15:50.5977227Z [36;1m[0m
+2026-07-28T01:15:50.5977477Z [36;1mplan_payload = "    tickers,\n  });"[0m
+2026-07-28T01:15:50.5977809Z [36;1massert plan_payload in src[0m
+2026-07-28T01:15:50.5978284Z [36;1msrc = src.replace(plan_payload, "    tickers,\n    policy: POLICY_OVERRIDES,\n  });", 1)[0m
+2026-07-28T01:15:50.5978749Z [36;1m[0m
+2026-07-28T01:15:50.5979013Z [36;1mexecute_payload = "      datasets,\n    },"[0m
+2026-07-28T01:15:50.5979356Z [36;1massert execute_payload in src[0m
+2026-07-28T01:15:50.5979850Z [36;1msrc = src.replace(execute_payload, "      datasets,\n      policy: POLICY_OVERRIDES,\n    },", 1)[0m
+2026-07-28T01:15:50.5980338Z [36;1m[0m
+2026-07-28T01:15:50.5980654Z [36;1mPath("/tmp/signal60-active-runner.mjs").write_text(src)[0m
+2026-07-28T01:15:50.5981211Z [36;1mPY[0m
+2026-07-28T01:15:50.5981521Z [36;1mnode --check /tmp/signal60-active-runner.mjs[0m
+2026-07-28T01:15:50.6118647Z shell: /usr/bin/bash -e {0}
+2026-07-28T01:15:50.6118978Z ##[endgroup]
+2026-07-28T01:15:50.6777796Z ##[group]Run node /tmp/signal60-active-runner.mjs
+2026-07-28T01:15:50.6778271Z [36;1mnode /tmp/signal60-active-runner.mjs[0m
+2026-07-28T01:15:50.6825117Z shell: /usr/bin/bash -e {0}
+2026-07-28T01:15:50.6825439Z env:
+2026-07-28T01:15:50.6825856Z   SIGNAL60_SITE_URL: https://binance-hourly-heatmap.burakturan000.chatgpt.site
+2026-07-28T01:15:50.6826370Z   SIGNAL60_RUNNER_ID: github-actions-v1
+2026-07-28T01:15:50.6826686Z ##[endgroup]
+2026-07-28T01:15:59.3222420Z {"ok":true,"generatedAt":"2026-07-28T01:15:59.060Z","status":"live","scanned":625,"modeled":16,"paperCycleExecuted":true,"positions":0,"orders":6,"warnings":0,"elapsedMs":8609}
+2026-07-28T01:15:59.3430879Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-28T01:15:59.3432118Z Post job cleanup.
+2026-07-28T01:15:59.4643153Z (node:2273) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-07-28T01:15:59.4644252Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-07-28T01:15:59.4832181Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-28T01:15:59.4834535Z Post job cleanup.
+2026-07-28T01:15:59.5720245Z [command]/usr/bin/git version
+2026-07-28T01:15:59.5761734Z git version 2.54.0
+2026-07-28T01:15:59.5800113Z Temporarily overriding HOME='/home/runner/work/_temp/dd884317-ed62-4518-81e7-fb19f0f633e0' before making global git config changes
+2026-07-28T01:15:59.5801875Z Adding repository directory to the temporary git global config as a safe directory
+2026-07-28T01:15:59.5806603Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/signal60-runner/signal60-runner
+2026-07-28T01:15:59.5844432Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-07-28T01:15:59.5879987Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-07-28T01:15:59.6133284Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-07-28T01:15:59.6163713Z http.https://github.com/.extraheader
+2026-07-28T01:15:59.6176155Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-07-28T01:15:59.6220755Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-07-28T01:15:59.6480978Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-07-28T01:15:59.6518914Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-07-28T01:15:59.6912955Z Cleaning up orphan processes
+2026-07-28T01:15:59.7240103Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
