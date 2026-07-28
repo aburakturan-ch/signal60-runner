@@ -1,0 +1,130 @@
+{
+  "checkedAt": "2026-07-28T01:11:17.719Z",
+  "generatedAt": "2026-07-28T01:05:33.074Z",
+  "status": "live",
+  "modelVersion": "S60-RIDGE-PAPER-2.1",
+  "universe": {
+    "scanned": 625,
+    "eligible": 466,
+    "deeplyModeled": 16
+  },
+  "policy": {
+    "initialCash": 100,
+    "maxOrderUsd": 2,
+    "maxAssetExposureUsd": 4,
+    "maxOpenPositions": 4,
+    "maxPortfolioExposurePct": 25,
+    "feePct": 0.1,
+    "slippagePct": 0.05,
+    "stopLossPct": -0.6,
+    "takeProfitPct": 1.2,
+    "cooldownMinutes": 60,
+    "minimumVerifiedSamples": 60,
+    "minimumVerifiedAccuracyPct": 54,
+    "roundTripFrictionPct": 0.3,
+    "minimumNetEdgePct": 0.1,
+    "shorting": false
+  },
+  "cycle": {
+    "id": "S60-PAPER-2.0:5950669",
+    "executed": true,
+    "note": "Cycle recorded; no new buy passed every risk gate."
+  },
+  "positions": [],
+  "orders": [
+    {
+      "id": "S60-PAPER-2.0:5950493:DOGE:SELL",
+      "symbol": "DOGE",
+      "side": "SELL",
+      "marketPrice": 0.07284,
+      "fillPrice": 0.07280358,
+      "quantity": 27.438904867461822,
+      "notional": 1.9976505056306464,
+      "fee": 0.0019976505056306464,
+      "realizedPnl": -0.004347144874984332,
+      "signalScore": 14.438967039614552,
+      "reason": "forecast edge decayed below trading costs (-0.52% conservative net)",
+      "createdAt": 1785147926005
+    },
+    {
+      "id": "S60-PAPER-2.0:5950493:BNB:SELL",
+      "symbol": "BNB",
+      "side": "SELL",
+      "marketPrice": 572.67,
+      "fillPrice": 572.383665,
+      "quantity": 0.0034902885491014256,
+      "notional": 1.9977841516422064,
+      "fee": 0.0019977841516422064,
+      "realizedPnl": -0.004213632509435961,
+      "signalScore": 9.637398221146578,
+      "reason": "forecast edge decayed below trading costs (-0.38% conservative net)",
+      "createdAt": 1785147926005
+    },
+    {
+      "id": "S60-PAPER-2.0:5950493:ETH:SELL",
+      "symbol": "ETH",
+      "side": "SELL",
+      "marketPrice": 1968.91,
+      "fillPrice": 1967.9255450000003,
+      "quantity": 0.0010162815946248983,
+      "notional": 1.9999665109756724,
+      "fee": 0.0019999665109756725,
+      "realizedPnl": -0.00203345553530343,
+      "signalScore": 7.0391762284729404,
+      "reason": "forecast edge decayed below trading costs (-0.49% conservative net)",
+      "createdAt": 1785147926005
+    },
+    {
+      "id": "S60-PAPER-1.1:5950492:DOGE:BUY",
+      "symbol": "DOGE",
+      "side": "BUY",
+      "marketPrice": 0.07278,
+      "fillPrice": 0.07281639,
+      "quantity": 27.438904867461822,
+      "notional": 1.9980019980019983,
+      "fee": 0.0019980019980019984,
+      "realizedPnl": null,
+      "signalScore": 15.411643906883956,
+      "reason": "1H model +0.16% · 15M momentum +0.14% · market breadth 43% · holdout error 0.25% vs 0.26% naive",
+      "createdAt": 1785147629278
+    },
+    {
+      "id": "S60-PAPER-1.1:5950489:BNB:BUY",
+      "symbol": "BNB",
+      "side": "BUY",
+      "marketPrice": 572.16,
+      "fillPrice": 572.4460799999999,
+      "quantity": 0.0034902885491014256,
+      "notional": 1.9980019980019983,
+      "fee": 0.0019980019980019984,
+      "realizedPnl": null,
+      "signalScore": 13.413154065155968,
+      "reason": "1H model +0.10% · 15M momentum -0.16% · market breadth 46% · holdout error 0.15% vs 0.16% naive",
+      "createdAt": 1785146729292
+    },
+    {
+      "id": "S60-PAPER-1.1:5950489:ETH:BUY",
+      "symbol": "ETH",
+      "side": "BUY",
+      "marketPrice": 1965.01,
+      "fillPrice": 1965.992505,
+      "quantity": 0.0010162815946248983,
+      "notional": 1.9980019980019983,
+      "fee": 0.0019980019980019984,
+      "realizedPnl": null,
+      "signalScore": 15.032892181132269,
+      "reason": "1H model +0.16% · 15M momentum -0.12% · market breadth 46% · holdout error 0.29% vs 0.31% naive",
+      "createdAt": 1785146729292
+    }
+  ],
+  "runner": {
+    "mode": "external",
+    "status": "live",
+    "cadenceMinutes": 5,
+    "runnerId": "github-actions-v1",
+    "cycleStartedAt": 1785200728256,
+    "lastSuccessAt": 1785200733074,
+    "nextExpectedAt": 1785201033074
+  },
+  "warnings": []
+}
