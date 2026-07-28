@@ -402,6 +402,8 @@ async function runCycle() {
     orders: result.trading?.orders?.length ?? null,
     s60PlanRequired: plan.syntheticIndex.required,
     s60PlannedEpoch: plan.syntheticIndex.epoch.id,
+    s60Observed: syntheticIndex?.observations?.length ?? 0,
+    s60FailedPairs: syntheticIndex?.failedPairs?.length ?? 0,
     s60Epoch: result.synthetic?.epoch?.lastSettledId ?? null,
     s60SettlementExecuted:
       result.synthetic?.lastSettlement?.id === syntheticIndex?.epoch?.id,
