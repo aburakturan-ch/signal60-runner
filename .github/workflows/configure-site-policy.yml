@@ -1,0 +1,92 @@
+name: Configure SIGNAL60 paper policy
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/configure-site-policy.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Request policy change from site backend
+        env:
+          SITE_URL: https://binance-hourly-heatmap.burakturan000.chatgpt.site
+        run: |
+          set -euo pipefail
+          mkdir -p diagnostics
+          node - <<'NODE'
+          const fs = require('fs');
+          const site = process.env.SITE_URL.replace(/\/+$/, '');
+          const tokenUrl = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
+          tokenUrl.searchParams.set('audience', `${site}/api/market`);
+          const identityResponse = await fetch(tokenUrl, {
+            headers: {
+              Accept: 'application/json',
+              Authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}`,
+            },
+          });
+          const identityBody = await identityResponse.json();
+          if (!identityResponse.ok || !identityBody.value) {
+            throw new Error(`OIDC request failed ${identityResponse.status}`);
+          }
+          const policy = {
+            maxOrderUsd: 5,
+            maxAssetExposureUsd: 10,
+            maxOpenPositions: 12,
+            maxPortfolioExposurePct: 80,
+            stopLossPct: -1.5,
+            takeProfitPct: 2.5,
+            cooldownMinutes: 5,
+            minimumVerifiedSamples: 20,
+            minimumVerifiedAccuracyPct: 48,
+            minimumNetEdgePct: 0,
+          };
+          const response = await fetch(`${site}/api/market`, {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              Authorization: `Bearer ${identityBody.value}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'configure',
+              runnerId: 'github-actions-v1',
+              policy,
+            }),
+          });
+          const text = await response.text();
+          let body;
+          try { body = JSON.parse(text); } catch { body = {raw: text}; }
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          const stateResponse = await fetch(`${site}/api/market`, {headers:{Accept:'application/json'}});
+          const state = await stateResponse.json();
+          const result = {
+            checkedAt: new Date().toISOString(),
+            configureHttpStatus: response.status,
+            configureResponse: body,
+            activePolicy: state.trading?.policy ?? null,
+            universe: state.universe ?? null,
+            cycle: state.trading?.cycle ?? null,
+          };
+          fs.writeFileSync('diagnostics/site-policy-configure-result.json', JSON.stringify(result, null, 2) + '\n');
+          console.log(JSON.stringify(result));
+          NODE
+      - name: Save configuration result
+        if: always()
+        run: |
+          git config user.name signal60-diagnostic
+          git config user.email signal60-diagnostic@users.noreply.github.com
+          git add diagnostics/site-policy-configure-result.json || true
+          git diff --cached --quiet && exit 0
+          git commit -m "Record SIGNAL60 backend policy configuration result"
+          git push
