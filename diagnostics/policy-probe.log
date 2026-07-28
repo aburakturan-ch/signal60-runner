@@ -1,0 +1,6 @@
+python_patch_exit=0
+SIGNAL60 runner failed: Unauthorized runner request.
+runner_exit=1
+
+http_status=200
+{"checkedAt":"2026-07-28T01:08:52.322Z","policy":{"initialCash":100,"maxOrderUsd":2,"maxAssetExposureUsd":4,"maxOpenPositions":4,"maxPortfolioExposurePct":25,"feePct":0.1,"slippagePct":0.05,"stopLossPct":-0.6,"takeProfitPct":1.2,"cooldownMinutes":60,"minimumVerifiedSamples":60,"minimumVerifiedAccuracyPct":54,"roundTripFrictionPct":0.3,"minimumNetEdgePct":0.1,"shorting":false},"cycle":{"id":"S60-PAPER-2.0:5950669","executed":true,"note":"Cycle recorded; no new buy passed every risk gate."},"positions":0,"orders":6,"runner":{"mode":"external","status":"live","cadenceMinutes":5,"runnerId":"github-actions-v1","cycleStartedAt":1785200728256,"lastSuccessAt":1785200733074,"nextExpectedAt":1785201033074}}
