@@ -20,6 +20,7 @@ const BINANCE_BASES = process.env.SIGNAL60_BINANCE_BASES
       "https://api4.binance.com",
     ];
 const KLINE_BATCH_SIZE = 6;
+const INDEX_BATCH_SIZE = 8;
 const MINIMUM_DEEP_MODELS = 60;
 const BINANCE_MAX_ATTEMPTS = 3;
 
@@ -210,6 +211,89 @@ function compactKlines(rows) {
   });
 }
 
+function klineVwap(row) {
+  if (!Array.isArray(row) || row.length < 8) return null;
+  const close = Number(row[4]);
+  const baseVolume = Number(row[5]);
+  const quoteVolume = Number(row[7]);
+  if (
+    Number.isFinite(baseVolume) &&
+    baseVolume > 0 &&
+    Number.isFinite(quoteVolume) &&
+    quoteVolume > 0
+  ) {
+    return quoteVolume / baseVolume;
+  }
+  return Number.isFinite(close) && close > 0 ? close : null;
+}
+
+async function fetchSyntheticIndexSubmission(plan) {
+  if (!plan || plan.required !== true) return null;
+  if (
+    !plan.epoch ||
+    typeof plan.epoch.id !== "string" ||
+    !Number.isFinite(Number(plan.epoch.startAt)) ||
+    !Number.isFinite(Number(plan.epoch.endAt)) ||
+    !Array.isArray(plan.pairs)
+  ) {
+    throw new Error("SIGNAL/60 returned an invalid synthetic-index plan");
+  }
+
+  const startAt = Number(plan.epoch.startAt);
+  const endAt = Number(plan.epoch.endAt);
+  if (endAt - startAt !== 24 * 60 * 1_000) {
+    throw new Error("SIGNAL/60 synthetic-index epoch is not 24 minutes");
+  }
+
+  const observations = [];
+  const failedPairs = [];
+  for (let start = 0; start < plan.pairs.length; start += INDEX_BATCH_SIZE) {
+    const batch = plan.pairs.slice(start, start + INDEX_BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(async (pair) => {
+        if (typeof pair !== "string" || !/^[A-Z0-9]+USDT$/.test(pair)) {
+          throw new Error("invalid index pair");
+        }
+        const rows = await fetchBinance(
+          `/api/v3/klines?symbol=${encodeURIComponent(
+            pair,
+          )}&interval=1m&startTime=${startAt}&endTime=${
+            endAt - 1
+          }&limit=24`,
+        );
+        if (!Array.isArray(rows) || rows.length < 20 || rows.length > 24) {
+          throw new Error(`${pair} returned ${rows?.length ?? 0} index bars`);
+        }
+        const startPrice = klineVwap(rows[0]);
+        const endPrice = klineVwap(rows.at(-1));
+        if (!startPrice || !endPrice) {
+          throw new Error(`${pair} index VWAP is invalid`);
+        }
+        observations.push({
+          pair,
+          startPrice,
+          endPrice,
+          sampleCount: rows.length,
+        });
+      }),
+    );
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
+        failedPairs.push(batch[index] ?? "unknown");
+      }
+    });
+  }
+  return {
+    epoch: {
+      id: plan.epoch.id,
+      startAt,
+      endAt,
+    },
+    observations,
+    failedPairs,
+  };
+}
+
 async function runCycle() {
   const startedAt = Date.now();
   const cycleStartedAt =
@@ -234,6 +318,14 @@ async function runCycle() {
   ) {
     throw new Error("SIGNAL/60 returned an incomplete deep-model plan");
   }
+  let syntheticIndexFailure = null;
+  const syntheticIndexPromise = fetchSyntheticIndexSubmission(
+    plan.syntheticIndex,
+  ).catch((error) => {
+    syntheticIndexFailure =
+      error instanceof Error ? error.message : "synthetic index fetch failed";
+    return null;
+  });
 
   const datasets = {};
   const failures = [];
@@ -274,6 +366,7 @@ async function runCycle() {
         .join(", ")})`,
     );
   }
+  const syntheticIndex = await syntheticIndexPromise;
 
   const result = await postRunner(
     {
@@ -283,6 +376,7 @@ async function runCycle() {
       tickers,
       datasets,
       failedSymbols: failures.map((failure) => failure.split(":")[0]),
+      ...(syntheticIndex ? { syntheticIndex } : {}),
     },
     2,
   );
@@ -298,6 +392,11 @@ async function runCycle() {
     ordersCreated: result.trading?.cycle?.ordersCreated ?? null,
     positions: result.trading?.positions?.length ?? null,
     orders: result.trading?.orders?.length ?? null,
+    s60Epoch: result.synthetic?.epoch?.lastSettledId ?? null,
+    s60SettlementExecuted:
+      result.synthetic?.lastSettlement?.id === syntheticIndex?.epoch?.id,
+    s60Included: result.synthetic?.oracle?.included ?? null,
+    s60FetchFailure: syntheticIndexFailure,
     warnings: Array.isArray(result.warnings) ? result.warnings.length : 0,
     elapsedMs: Date.now() - startedAt,
   };
