@@ -1,0 +1,106 @@
+{
+  "capturedAt": "2026-07-28T01:13:40.741Z",
+  "runs": [
+    {
+      "id": 30319481077,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "failure",
+      "createdAt": "2026-07-28T01:10:09Z",
+      "updatedAt": "2026-07-28T01:10:09Z",
+      "headSha": "122ad90dcf5df4b91388773847e01f43ea626219",
+      "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30319481077"
+    },
+    {
+      "id": 30319242624,
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-07-28T01:05:14Z",
+      "updatedAt": "2026-07-28T01:05:35Z",
+      "headSha": "06cfd0b6ce77d1b649a6251609878a93112300d6",
+      "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30319242624"
+    },
+    {
+      "id": 30319007701,
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-07-28T01:00:38Z",
+      "updatedAt": "2026-07-28T01:00:55Z",
+      "headSha": "06cfd0b6ce77d1b649a6251609878a93112300d6",
+      "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30319007701"
+    },
+    {
+      "id": 30318745266,
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-07-28T00:55:15Z",
+      "updatedAt": "2026-07-28T00:55:36Z",
+      "headSha": "06cfd0b6ce77d1b649a6251609878a93112300d6",
+      "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30318745266"
+    },
+    {
+      "id": 30318501576,
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-07-28T00:50:20Z",
+      "updatedAt": "2026-07-28T00:50:42Z",
+      "headSha": "06cfd0b6ce77d1b649a6251609878a93112300d6",
+      "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30318501576"
+    },
+    {
+      "id": 30318468400,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-07-28T00:49:43Z",
+      "updatedAt": "2026-07-28T00:49:59Z",
+      "headSha": "06cfd0b6ce77d1b649a6251609878a93112300d6",
+      "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30318468400"
+    },
+    {
+      "id": 30318249816,
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-07-28T00:45:20Z",
+      "updatedAt": "2026-07-28T00:45:35Z",
+      "headSha": "6e68d12ea1dbd7bc28dab9bf00fcf68342f2b317",
+      "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30318249816"
+    },
+    {
+      "id": 30317992784,
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-07-28T00:40:20Z",
+      "updatedAt": "2026-07-28T00:40:35Z",
+      "headSha": "6e68d12ea1dbd7bc28dab9bf00fcf68342f2b317",
+      "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30317992784"
+    },
+    {
+      "id": 30317740084,
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-07-28T00:35:14Z",
+      "updatedAt": "2026-07-28T00:35:39Z",
+      "headSha": "6e68d12ea1dbd7bc28dab9bf00fcf68342f2b317",
+      "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30317740084"
+    },
+    {
+      "id": 30317503823,
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-07-28T00:30:29Z",
+      "updatedAt": "2026-07-28T00:30:50Z",
+      "headSha": "6e68d12ea1dbd7bc28dab9bf00fcf68342f2b317",
+      "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30317503823"
+    }
+  ],
+  "jobs": []
+}
