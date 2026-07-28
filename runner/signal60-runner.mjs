@@ -19,9 +19,12 @@ const BINANCE_BASES = process.env.SIGNAL60_BINANCE_BASES
       "https://api3.binance.com",
       "https://api4.binance.com",
     ];
-const KLINE_BATCH_SIZE = 4;
+const KLINE_BATCH_SIZE = 6;
+const MINIMUM_DEEP_MODELS = 60;
+const BINANCE_MAX_ATTEMPTS = 3;
 
 let githubOidcToken;
+const cycleFetchCache = new Map();
 
 async function getAuthorization() {
   if (RUNNER_SECRET && RUNNER_SECRET.length >= 32) {
@@ -73,25 +76,51 @@ async function fetchWithTimeout(url, init = {}, timeoutMs = 20_000) {
   }
 }
 
-async function fetchBinance(path) {
+async function fetchBinanceUncached(path) {
   const failures = [];
-  for (const base of BINANCE_BASES) {
-    try {
-      const response = await fetchWithTimeout(`${base}${path}`);
-      if (!response.ok) {
-        failures.push(`${new URL(base).hostname}:${response.status}`);
-        continue;
+  for (let attempt = 0; attempt < BINANCE_MAX_ATTEMPTS; attempt += 1) {
+    let retryAfterMs = 0;
+    for (const base of BINANCE_BASES) {
+      try {
+        const response = await fetchWithTimeout(`${base}${path}`);
+        if (!response.ok) {
+          failures.push(`${new URL(base).hostname}:${response.status}`);
+          if (response.status === 429) {
+            const retryAfter = Number(response.headers.get("retry-after"));
+            retryAfterMs = Math.max(
+              retryAfterMs,
+              Number.isFinite(retryAfter) ? retryAfter * 1_000 : 0,
+            );
+          }
+          if (response.status >= 500 || response.status === 429) continue;
+          continue;
+        }
+        return await response.json();
+      } catch (error) {
+        failures.push(
+          `${new URL(base).hostname}:${
+            error instanceof Error ? error.name : "fetch_error"
+          }`,
+        );
       }
-      return await response.json();
-    } catch (error) {
-      failures.push(
-        `${new URL(base).hostname}:${
-          error instanceof Error ? error.name : "fetch_error"
-        }`,
+    }
+    if (attempt < BINANCE_MAX_ATTEMPTS - 1) {
+      const exponentialMs = 500 * 2 ** attempt;
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.max(exponentialMs, retryAfterMs)),
       );
     }
   }
-  throw new Error(`Official Binance endpoints unavailable (${failures.join(", ")})`);
+  throw new Error(
+    `Official Binance endpoints unavailable (${failures.slice(-8).join(", ")})`,
+  );
+}
+
+async function fetchBinance(path) {
+  if (!cycleFetchCache.has(path)) {
+    cycleFetchCache.set(path, fetchBinanceUncached(path));
+  }
+  return cycleFetchCache.get(path);
 }
 
 async function postRunner(payload, attempts = 2) {
@@ -131,7 +160,16 @@ async function postRunner(payload, attempts = 2) {
   throw lastError;
 }
 
-function compactTickers(rows) {
+function compactTickers(rows, bookRows) {
+  const books = new Map(
+    bookRows.flatMap((row) =>
+      row &&
+      typeof row === "object" &&
+      typeof row.symbol === "string"
+        ? [[row.symbol, row]]
+        : [],
+    ),
+  );
   return rows.flatMap((row) => {
     if (
       !row ||
@@ -141,6 +179,7 @@ function compactTickers(rows) {
     ) {
       return [];
     }
+    const book = books.get(row.symbol);
     return [
       {
         symbol: row.symbol,
@@ -148,6 +187,10 @@ function compactTickers(rows) {
         priceChangePercent: String(row.priceChangePercent ?? ""),
         quoteVolume: String(row.quoteVolume ?? ""),
         count: Number(row.count ?? 0),
+        highPrice: String(row.highPrice ?? ""),
+        lowPrice: String(row.lowPrice ?? ""),
+        bidPrice: String(book?.bidPrice ?? ""),
+        askPrice: String(book?.askPrice ?? ""),
       },
     ];
   });
@@ -168,19 +211,27 @@ function compactKlines(rows) {
 }
 
 async function runCycle() {
-  const cycleStartedAt = Date.now();
-  const rawTickers = await fetchBinance("/api/v3/ticker/24hr");
-  if (!Array.isArray(rawTickers)) {
-    throw new Error("Binance ticker response is not an array");
+  const startedAt = Date.now();
+  const cycleStartedAt =
+    Math.floor(startedAt / (5 * 60 * 1_000)) * (5 * 60 * 1_000);
+  const [rawTickers, rawBooks] = await Promise.all([
+    fetchBinance("/api/v3/ticker/24hr"),
+    fetchBinance("/api/v3/ticker/bookTicker"),
+  ]);
+  if (!Array.isArray(rawTickers) || !Array.isArray(rawBooks)) {
+    throw new Error("Binance ticker or order-book response is not an array");
   }
-  const tickers = compactTickers(rawTickers);
+  const tickers = compactTickers(rawTickers, rawBooks);
   const plan = await postRunner({
     action: "plan",
     runnerId: RUNNER_ID,
     cycleStartedAt,
     tickers,
   });
-  if (!Array.isArray(plan.pairs) || plan.pairs.length < 8) {
+  if (
+    !Array.isArray(plan.pairs) ||
+    plan.pairs.length < MINIMUM_DEEP_MODELS
+  ) {
     throw new Error("SIGNAL/60 returned an incomplete deep-model plan");
   }
 
@@ -216,7 +267,7 @@ async function runCycle() {
       }
     });
   }
-  if (Object.keys(datasets).length < 8) {
+  if (Object.keys(datasets).length < MINIMUM_DEEP_MODELS) {
     throw new Error(
       `Only ${Object.keys(datasets).length} deep datasets loaded (${failures
         .slice(0, 3)
@@ -231,6 +282,7 @@ async function runCycle() {
       cycleStartedAt,
       tickers,
       datasets,
+      failedSymbols: failures.map((failure) => failure.split(":")[0]),
     },
     2,
   );
@@ -240,11 +292,14 @@ async function runCycle() {
     status: result.status,
     scanned: result.universe?.scanned ?? null,
     modeled: result.universe?.deeplyModeled ?? null,
+    failed: result.universe?.failed ?? failures.length,
     paperCycleExecuted: result.trading?.cycle?.executed ?? null,
+    duplicateCycle: result.trading?.cycle?.duplicate ?? false,
+    ordersCreated: result.trading?.cycle?.ordersCreated ?? null,
     positions: result.trading?.positions?.length ?? null,
     orders: result.trading?.orders?.length ?? null,
     warnings: Array.isArray(result.warnings) ? result.warnings.length : 0,
-    elapsedMs: Date.now() - cycleStartedAt,
+    elapsedMs: Date.now() - startedAt,
   };
   process.stdout.write(`${JSON.stringify(summary)}\n`);
 }
