@@ -20,6 +20,7 @@ const BINANCE_BASES = process.env.SIGNAL60_BINANCE_BASES
       "https://api4.binance.com",
     ];
 const KLINE_BATCH_SIZE = 6;
+const FUSION_RISK_KLINE_BATCH_SIZE = 12;
 const INDEX_BATCH_SIZE = 8;
 const MINIMUM_DEEP_MODELS = 60;
 const BINANCE_MAX_ATTEMPTS = 3;
@@ -319,6 +320,12 @@ async function runCycle() {
     throw new Error("SIGNAL/60 returned an incomplete deep-model plan");
   }
   if (
+    !Array.isArray(plan.fusionRiskPairs) ||
+    plan.fusionRiskPairs.length < plan.pairs.length
+  ) {
+    throw new Error("SIGNAL/60 returned an incomplete Fusion Risk universe");
+  }
+  if (
     !plan.syntheticIndex ||
     typeof plan.syntheticIndex.required !== "boolean" ||
     !plan.syntheticIndex.epoch ||
@@ -367,6 +374,51 @@ async function runCycle() {
       }
     });
   }
+  const deepPairs = new Set(
+    plan.pairs.flatMap(({ pair }) =>
+      typeof pair === "string" ? [pair] : [],
+    ),
+  );
+  const fusionRiskOnlyPairs = plan.fusionRiskPairs.filter(
+    ({ pair }) => typeof pair === "string" && !deepPairs.has(pair),
+  );
+  for (
+    let start = 0;
+    start < fusionRiskOnlyPairs.length;
+    start += FUSION_RISK_KLINE_BATCH_SIZE
+  ) {
+    const batch = fusionRiskOnlyPairs.slice(
+      start,
+      start + FUSION_RISK_KLINE_BATCH_SIZE,
+    );
+    const results = await Promise.allSettled(
+      batch.map(async ({ pair }) => {
+        if (typeof pair !== "string" || !/^[A-Z0-9]+USDT$/.test(pair)) {
+          throw new Error("invalid Fusion Risk pair");
+        }
+        const rows = await fetchBinance(
+          `/api/v3/klines?symbol=${encodeURIComponent(
+            pair,
+          )}&interval=5m&limit=300`,
+        );
+        if (!Array.isArray(rows)) {
+          throw new Error(`${pair} Fusion Risk kline response is not an array`);
+        }
+        datasets[pair] = compactKlines(rows);
+      }),
+    );
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
+        failures.push(
+          `${batch[index]?.pair ?? "unknown"}:${
+            result.reason instanceof Error
+              ? result.reason.message
+              : "Fusion Risk fetch failed"
+          }`,
+        );
+      }
+    });
+  }
   if (Object.keys(datasets).length < MINIMUM_DEEP_MODELS) {
     throw new Error(
       `Only ${Object.keys(datasets).length} deep datasets loaded (${failures
@@ -400,6 +452,13 @@ async function runCycle() {
     ordersCreated: result.trading?.cycle?.ordersCreated ?? null,
     positions: result.trading?.positions?.length ?? null,
     orders: result.trading?.orders?.length ?? null,
+    fusionRiskTracked: result.fusionRisk?.universe?.tracked ?? null,
+    fusionRiskModeled: result.fusionRisk?.universe?.modeled ?? null,
+    fusionRiskFailed: result.fusionRisk?.universe?.failed ?? null,
+    fusionRiskOrdersCreated:
+      result.fusionRisk?.portfolio?.cycle?.ordersCreated ?? null,
+    fusionRiskPositions:
+      result.fusionRisk?.portfolio?.positions?.length ?? null,
     s60PlanRequired: plan.syntheticIndex.required,
     s60PlannedEpoch: plan.syntheticIndex.epoch.id,
     s60Observed: syntheticIndex?.observations?.length ?? 0,
