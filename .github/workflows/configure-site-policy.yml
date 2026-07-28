@@ -61,6 +61,7 @@ jobs:
             body: JSON.stringify({
               action: 'configure',
               runnerId: 'github-actions-v1',
+              cycleStartedAt: Date.now(),
               policy,
             }),
           });
