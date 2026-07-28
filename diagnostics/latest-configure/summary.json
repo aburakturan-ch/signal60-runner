@@ -1,0 +1,91 @@
+{
+  "capturedAt": "2026-07-28T01:19:18.266Z",
+  "runs": [
+    {
+      "id": 30319847930,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "failure",
+      "createdAt": "2026-07-28T01:17:49Z",
+      "updatedAt": "2026-07-28T01:18:01Z",
+      "headSha": "a4392b140f28702f9777fc3de41ac0910e283684",
+      "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30319847930"
+    }
+  ],
+  "jobs": [
+    {
+      "id": 90153243412,
+      "name": "configure",
+      "status": "completed",
+      "conclusion": "failure",
+      "startedAt": "2026-07-28T01:17:52Z",
+      "completedAt": "2026-07-28T01:18:00Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-07-28T01:17:53Z",
+          "completed_at": "2026-07-28T01:17:53Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-07-28T01:17:53Z",
+          "completed_at": "2026-07-28T01:17:54Z"
+        },
+        {
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-07-28T01:17:54Z",
+          "completed_at": "2026-07-28T01:17:57Z"
+        },
+        {
+          "name": "Request policy change from site backend",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 4,
+          "started_at": "2026-07-28T01:17:57Z",
+          "completed_at": "2026-07-28T01:17:57Z"
+        },
+        {
+          "name": "Save configuration result",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-07-28T01:17:57Z",
+          "completed_at": "2026-07-28T01:17:57Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-07-28T01:17:57Z",
+          "completed_at": "2026-07-28T01:17:57Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-07-28T01:17:57Z",
+          "completed_at": "2026-07-28T01:17:57Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-07-28T01:17:57Z",
+          "completed_at": "2026-07-28T01:17:57Z"
+        }
+      ]
+    }
+  ]
+}
