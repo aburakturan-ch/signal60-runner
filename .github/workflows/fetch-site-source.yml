@@ -3,7 +3,7 @@ name: Fetch SIGNAL60 site source
 on:
   push:
     branches: [agent/diagnose-no-buys]
-    paths: [".github/workflows/fetch-site-source.yml", "diagnostics/fetch-site-trigger.txt"]
+    paths: [".github/workflows/fetch-site-source.yml", "diagnostics/fetch-site-trigger.txt", "diagnostics/fetch-market-bundle-trigger.txt"]
 
 permissions:
   contents: write
@@ -21,33 +21,14 @@ jobs:
           mkdir -p diagnostics/site
           base='https://binance-hourly-heatmap.burakturan000.chatgpt.site'
           curl -fsSL "$base/" -o diagnostics/site/index.html
-          python - <<'PY'
-          import re, pathlib, urllib.parse, urllib.request
-          base='https://binance-hourly-heatmap.burakturan000.chatgpt.site/'
-          html=pathlib.Path('diagnostics/site/index.html').read_text(errors='ignore')
-          urls=[]
-          for pat in [r'<script[^>]+src=["\']([^"\']+)', r'<link[^>]+href=["\']([^"\']+\.js[^"\']*)']:
-              urls += re.findall(pat, html, re.I)
-          seen=[]
-          for u in urls:
-              full=urllib.parse.urljoin(base,u)
-              if full in seen: continue
-              seen.append(full)
-              try:
-                  data=urllib.request.urlopen(full, timeout=30).read()
-              except Exception as e:
-                  print('FETCH_FAIL', full, repr(e)); continue
-              name=urllib.parse.urlparse(full).path.strip('/').replace('/','__') or 'asset.js'
-              if not name.endswith('.js'): name += '.js'
-              pathlib.Path('diagnostics/site',name).write_bytes(data)
-              print('FETCHED',full,name,len(data))
-          pathlib.Path('diagnostics/site/assets.txt').write_text('\n'.join(seen)+'\n')
-          PY
-          grep -RniE 'minimumVerified|cooldownMinutes|maxOpenPositions|maxOrderUsd|minimumNetEdge|S60-PAPER|risk gate|api/market' diagnostics/site > diagnostics/site/matches.txt || true
+          bundle=$(grep -oE '/assets/market-dashboard-[^" ]+\.js' diagnostics/site/index.html | head -1)
+          test -n "$bundle"
+          curl -fsSL "$base$bundle" -o diagnostics/site/market-dashboard.js
+          grep -oE '.{0,180}(minimumVerified|cooldownMinutes|maxOpenPositions|maxOrderUsd|minimumNetEdge|S60-PAPER|risk gate|api/market).{0,280}' diagnostics/site/market-dashboard.js > diagnostics/site/bundle-matches.txt || true
       - name: Save fetched source
         run: |
           git config user.name signal60-diagnostic
           git config user.email signal60-diagnostic@users.noreply.github.com
           git add diagnostics/site
-          git commit -m "Capture published SIGNAL60 site source"
+          git commit -m "Capture published SIGNAL60 market bundle"
           git push origin HEAD:agent/diagnose-no-buys
