@@ -318,6 +318,14 @@ async function runCycle() {
   ) {
     throw new Error("SIGNAL/60 returned an incomplete deep-model plan");
   }
+  if (
+    !plan.syntheticIndex ||
+    typeof plan.syntheticIndex.required !== "boolean" ||
+    !plan.syntheticIndex.epoch ||
+    typeof plan.syntheticIndex.epoch.id !== "string"
+  ) {
+    throw new Error("SIGNAL/60 returned an incomplete synthetic-index plan");
+  }
   let syntheticIndexFailure = null;
   const syntheticIndexPromise = fetchSyntheticIndexSubmission(
     plan.syntheticIndex,
@@ -392,6 +400,8 @@ async function runCycle() {
     ordersCreated: result.trading?.cycle?.ordersCreated ?? null,
     positions: result.trading?.positions?.length ?? null,
     orders: result.trading?.orders?.length ?? null,
+    s60PlanRequired: plan.syntheticIndex.required,
+    s60PlannedEpoch: plan.syntheticIndex.epoch.id,
     s60Epoch: result.synthetic?.epoch?.lastSettledId ?? null,
     s60SettlementExecuted:
       result.synthetic?.lastSettlement?.id === syntheticIndex?.epoch?.id,
