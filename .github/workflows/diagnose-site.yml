@@ -1,0 +1,56 @@
+name: Diagnose SIGNAL60 site
+
+on:
+  push:
+    branches: [agent/diagnose-no-buys]
+    paths: [".github/workflows/diagnose-site.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/diagnose-no-buys
+      - name: Fetch public market state
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p diagnostics
+          url="https://binance-hourly-heatmap.burakturan000.chatgpt.site/api/market"
+          code=$(curl -sS -L --max-time 30 -D diagnostics/headers.txt -o diagnostics/body.txt -w '%{http_code}' "$url" || true)
+          printf '%s\n' "$code" > diagnostics/http-status.txt
+          node - <<'NODE'
+          const fs = require('fs');
+          const raw = fs.readFileSync('diagnostics/body.txt','utf8');
+          const httpStatus = fs.readFileSync('diagnostics/http-status.txt','utf8').trim();
+          let body;
+          try { body = JSON.parse(raw); } catch { body = {parseError:true, preview:raw.slice(0,2000)}; }
+          const trading = body && typeof body === 'object' ? (body.trading || null) : null;
+          const out = {
+            fetchedAt: new Date().toISOString(),
+            httpStatus,
+            topLevelKeys: body && typeof body === 'object' ? Object.keys(body) : [],
+            generatedAt: body?.generatedAt ?? null,
+            status: body?.status ?? null,
+            warnings: body?.warnings ?? null,
+            universe: body?.universe ?? null,
+            trading,
+            signals: body?.signals ?? body?.opportunities ?? body?.candidates ?? null,
+            raw: body
+          };
+          fs.writeFileSync('diagnostics/site-market.json', JSON.stringify(out,null,2));
+          NODE
+      - name: Commit diagnostic output
+        run: |
+          git config user.name signal60-diagnostic-bot
+          git config user.email signal60-diagnostic-bot@users.noreply.github.com
+          git add diagnostics/
+          git diff --cached --quiet && exit 0
+          git commit -m "Record SIGNAL60 site diagnostic"
+          git push origin HEAD:agent/diagnose-no-buys
