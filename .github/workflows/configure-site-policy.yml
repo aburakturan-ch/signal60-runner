@@ -24,8 +24,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p diagnostics
-          node - <<'NODE'
-          const fs = require('fs');
+          node --input-type=module - <<'NODE'
+          import fs from 'node:fs';
           const site = process.env.SITE_URL.replace(/\/+$/, '');
           const tokenUrl = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
           tokenUrl.searchParams.set('audience', `${site}/api/market`);
@@ -80,6 +80,7 @@ jobs:
           };
           fs.writeFileSync('diagnostics/site-policy-configure-result.json', JSON.stringify(result, null, 2) + '\n');
           console.log(JSON.stringify(result));
+          if (!response.ok) process.exitCode = 2;
           NODE
       - name: Save configuration result
         if: always()
