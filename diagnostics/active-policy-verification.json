@@ -1,11 +1,11 @@
 {
-  "checkedAt": "2026-07-28T01:11:17.719Z",
-  "generatedAt": "2026-07-28T01:05:33.074Z",
+  "checkedAt": "2026-07-28T01:16:44.045Z",
+  "generatedAt": "2026-07-28T01:15:59.060Z",
   "status": "live",
   "modelVersion": "S60-RIDGE-PAPER-2.1",
   "universe": {
     "scanned": 625,
-    "eligible": 466,
+    "eligible": 470,
     "deeplyModeled": 16
   },
   "policy": {
@@ -26,7 +26,7 @@
     "shorting": false
   },
   "cycle": {
-    "id": "S60-PAPER-2.0:5950669",
+    "id": "S60-PAPER-2.0:5950671",
     "executed": true,
     "note": "Cycle recorded; no new buy passed every risk gate."
   },
@@ -122,9 +122,9 @@
     "status": "live",
     "cadenceMinutes": 5,
     "runnerId": "github-actions-v1",
-    "cycleStartedAt": 1785200728256,
-    "lastSuccessAt": 1785200733074,
-    "nextExpectedAt": 1785201033074
+    "cycleStartedAt": 1785201350712,
+    "lastSuccessAt": 1785201359060,
+    "nextExpectedAt": 1785201659060
   },
   "warnings": []
 }
