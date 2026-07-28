@@ -1,0 +1,47 @@
+name: Verify active SIGNAL60 policy
+
+on:
+  push:
+    branches: [agent/diagnose-no-buys]
+    paths: [".github/workflows/verify-active-policy.yml", "diagnostics/verify-active-trigger.txt"]
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/diagnose-no-buys
+      - name: Fetch current site state
+        run: |
+          set -euo pipefail
+          mkdir -p diagnostics
+          curl -fsSL https://binance-hourly-heatmap.burakturan000.chatgpt.site/api/market -o /tmp/market.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const m=JSON.parse(fs.readFileSync('/tmp/market.json','utf8'));
+          const out={
+            checkedAt:new Date().toISOString(),
+            generatedAt:m.generatedAt,
+            status:m.status,
+            modelVersion:m.modelVersion,
+            universe:m.universe,
+            policy:m.trading?.policy??null,
+            cycle:m.trading?.cycle??null,
+            positions:m.trading?.positions??[],
+            orders:m.trading?.orders??[],
+            runner:m.runner??null,
+            warnings:m.warnings??[]
+          };
+          fs.writeFileSync('diagnostics/active-policy-verification.json',JSON.stringify(out,null,2)+'\n');
+          NODE
+      - name: Save verification
+        run: |
+          git config user.name signal60-diagnostic
+          git config user.email signal60-diagnostic@users.noreply.github.com
+          git add diagnostics/active-policy-verification.json
+          git commit -m "Verify active SIGNAL60 policy after activity update"
+          git push origin HEAD:agent/diagnose-no-buys
