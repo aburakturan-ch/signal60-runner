@@ -1,0 +1,78 @@
+name: Probe SIGNAL60 policy override
+
+on:
+  push:
+    branches: [agent/diagnose-no-buys]
+    paths: [".github/workflows/probe-policy-override.yml", "diagnostics/policy-probe-trigger.txt"]
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/diagnose-no-buys
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run one paper cycle with explicit policy override
+        env:
+          SIGNAL60_SITE_URL: https://binance-hourly-heatmap.burakturan000.chatgpt.site
+          SIGNAL60_RUNNER_ID: github-actions-policy-probe
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          src=Path('runner/signal60-runner.mjs').read_text()
+          src=src.replace('const KLINE_BATCH_SIZE = 4;', '''const KLINE_BATCH_SIZE = 4;
+          const POLICY_OVERRIDES = {
+            maxOrderUsd: 5,
+            maxAssetExposureUsd: 10,
+            maxOpenPositions: 12,
+            maxPortfolioExposurePct: 80,
+            cooldownMinutes: 5,
+            minimumVerifiedSamples: 20,
+            minimumVerifiedAccuracyPct: 48,
+            minimumNetEdgePct: 0,
+          };''')
+          src=src.replace('''    tickers,
+          });''','''    tickers,
+            policy: POLICY_OVERRIDES,
+          });''',1)
+          src=src.replace('''      datasets,
+            },''','''      datasets,
+              policy: POLICY_OVERRIDES,
+            },''',1)
+          Path('/tmp/policy-probe.mjs').write_text(src)
+          PY
+          node /tmp/policy-probe.mjs | tee /tmp/probe-output.txt
+          sleep 3
+          curl -fsSL https://binance-hourly-heatmap.burakturan000.chatgpt.site/api/market -o /tmp/market-after.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const m=JSON.parse(fs.readFileSync('/tmp/market-after.json','utf8'));
+          const out={
+            checkedAt:new Date().toISOString(),
+            policy:m.trading?.policy??null,
+            cycle:m.trading?.cycle??null,
+            positions:(m.trading?.positions??[]).length,
+            orders:(m.trading?.orders??[]).length,
+            latestOrders:(m.trading?.orders??[]).slice(-20),
+            runner:m.runner??null
+          };
+          fs.mkdirSync('diagnostics',{recursive:true});
+          fs.writeFileSync('diagnostics/policy-probe-result.json',JSON.stringify(out,null,2)+'\n');
+          console.log(JSON.stringify(out));
+          NODE
+      - name: Save result
+        run: |
+          git config user.name signal60-diagnostic
+          git config user.email signal60-diagnostic@users.noreply.github.com
+          git add diagnostics/policy-probe-result.json
+          git commit -m "Record SIGNAL60 policy override probe"
+          git push origin HEAD:agent/diagnose-no-buys
