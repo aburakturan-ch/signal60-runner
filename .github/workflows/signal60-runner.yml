@@ -7,13 +7,11 @@ on:
     paths:
       - .github/workflows/signal60-runner.yml
       - runner/signal60-runner.mjs
-  schedule:
-    - cron: "3-58/5 * * * *"
   workflow_dispatch:
 
 concurrency:
   group: signal60-market-cycle
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
