@@ -1,10 +1,10 @@
 {
-  "checkedAt": "2026-07-28T01:20:35.021Z",
+  "checkedAt": "2026-07-28T01:21:30.047Z",
   "configureHttpStatus": 400,
   "configureResponse": {
     "error": "External runner cycle could not complete.",
-    "detail": "Runner identity or cycle clock is invalid",
-    "generatedAt": "2026-07-28T01:20:32.884Z"
+    "detail": "Runner ticker universe is invalid",
+    "generatedAt": "2026-07-28T01:21:27.899Z"
   },
   "activePolicy": {
     "initialCash": 100,
@@ -25,11 +25,11 @@
   },
   "universe": {
     "scanned": 625,
-    "eligible": 470,
+    "eligible": 472,
     "deeplyModeled": 16
   },
   "cycle": {
-    "id": "S60-PAPER-2.0:5950671",
+    "id": "S60-PAPER-2.0:5950672",
     "executed": true,
     "note": "Cycle recorded; no new buy passed every risk gate."
   }
