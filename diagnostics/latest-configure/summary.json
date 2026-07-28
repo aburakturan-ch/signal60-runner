@@ -1,6 +1,26 @@
 {
-  "capturedAt": "2026-07-28T01:19:18.266Z",
+  "capturedAt": "2026-07-28T01:23:23.139Z",
   "runs": [
+    {
+      "id": 30320005788,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "failure",
+      "createdAt": "2026-07-28T01:21:15Z",
+      "updatedAt": "2026-07-28T01:21:33Z",
+      "headSha": "a9b709bcc5a5fdbdeb09813cfa4c6bbbe9697948",
+      "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30320005788"
+    },
+    {
+      "id": 30319957883,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "failure",
+      "createdAt": "2026-07-28T01:20:16Z",
+      "updatedAt": "2026-07-28T01:20:38Z",
+      "headSha": "6528a9183fdc091ba54b31e2c7a537ecd40a3188",
+      "url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30319957883"
+    },
     {
       "id": 30319847930,
       "event": "push",
@@ -14,76 +34,76 @@
   ],
   "jobs": [
     {
-      "id": 90153243412,
+      "id": 90153716546,
       "name": "configure",
       "status": "completed",
       "conclusion": "failure",
-      "startedAt": "2026-07-28T01:17:52Z",
-      "completedAt": "2026-07-28T01:18:00Z",
+      "startedAt": "2026-07-28T01:21:24Z",
+      "completedAt": "2026-07-28T01:21:32Z",
       "steps": [
         {
           "name": "Set up job",
           "status": "completed",
           "conclusion": "success",
           "number": 1,
-          "started_at": "2026-07-28T01:17:53Z",
-          "completed_at": "2026-07-28T01:17:53Z"
+          "started_at": "2026-07-28T01:21:25Z",
+          "completed_at": "2026-07-28T01:21:26Z"
         },
         {
           "name": "Run actions/checkout@v4",
           "status": "completed",
           "conclusion": "success",
           "number": 2,
-          "started_at": "2026-07-28T01:17:53Z",
-          "completed_at": "2026-07-28T01:17:54Z"
+          "started_at": "2026-07-28T01:21:26Z",
+          "completed_at": "2026-07-28T01:21:26Z"
         },
         {
           "name": "Run actions/setup-node@v4",
           "status": "completed",
           "conclusion": "success",
           "number": 3,
-          "started_at": "2026-07-28T01:17:54Z",
-          "completed_at": "2026-07-28T01:17:57Z"
+          "started_at": "2026-07-28T01:21:26Z",
+          "completed_at": "2026-07-28T01:21:27Z"
         },
         {
           "name": "Request policy change from site backend",
           "status": "completed",
           "conclusion": "failure",
           "number": 4,
-          "started_at": "2026-07-28T01:17:57Z",
-          "completed_at": "2026-07-28T01:17:57Z"
+          "started_at": "2026-07-28T01:21:27Z",
+          "completed_at": "2026-07-28T01:21:30Z"
         },
         {
           "name": "Save configuration result",
           "status": "completed",
           "conclusion": "success",
           "number": 5,
-          "started_at": "2026-07-28T01:17:57Z",
-          "completed_at": "2026-07-28T01:17:57Z"
+          "started_at": "2026-07-28T01:21:30Z",
+          "completed_at": "2026-07-28T01:21:31Z"
         },
         {
           "name": "Post Run actions/setup-node@v4",
           "status": "completed",
           "conclusion": "skipped",
           "number": 9,
-          "started_at": "2026-07-28T01:17:57Z",
-          "completed_at": "2026-07-28T01:17:57Z"
+          "started_at": "2026-07-28T01:21:31Z",
+          "completed_at": "2026-07-28T01:21:31Z"
         },
         {
           "name": "Post Run actions/checkout@v4",
           "status": "completed",
           "conclusion": "success",
           "number": 10,
-          "started_at": "2026-07-28T01:17:57Z",
-          "completed_at": "2026-07-28T01:17:57Z"
+          "started_at": "2026-07-28T01:21:31Z",
+          "completed_at": "2026-07-28T01:21:31Z"
         },
         {
           "name": "Complete job",
           "status": "completed",
           "conclusion": "success",
           "number": 11,
-          "started_at": "2026-07-28T01:17:57Z",
-          "completed_at": "2026-07-28T01:17:57Z"
+          "started_at": "2026-07-28T01:21:31Z",
+          "completed_at": "2026-07-28T01:21:31Z"
         }
       ]
     }

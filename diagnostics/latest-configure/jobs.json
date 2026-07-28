@@ -2,21 +2,21 @@
   "total_count": 1,
   "jobs": [
     {
-      "id": 90153243412,
-      "run_id": 30319847930,
+      "id": 90153716546,
+      "run_id": 30320005788,
       "workflow_name": "Configure SIGNAL60 paper policy",
       "head_branch": "main",
-      "run_url": "https://api.github.com/repos/aburakturan-ch/signal60-runner/actions/runs/30319847930",
+      "run_url": "https://api.github.com/repos/aburakturan-ch/signal60-runner/actions/runs/30320005788",
       "run_attempt": 1,
-      "node_id": "CR_kwDOTkn-_s8AAAAU_Y1TFA",
-      "head_sha": "a4392b140f28702f9777fc3de41ac0910e283684",
-      "url": "https://api.github.com/repos/aburakturan-ch/signal60-runner/actions/jobs/90153243412",
-      "html_url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30319847930/job/90153243412",
+      "node_id": "CR_kwDOTkn-_s8AAAAU_ZSLQg",
+      "head_sha": "a9b709bcc5a5fdbdeb09813cfa4c6bbbe9697948",
+      "url": "https://api.github.com/repos/aburakturan-ch/signal60-runner/actions/jobs/90153716546",
+      "html_url": "https://github.com/aburakturan-ch/signal60-runner/actions/runs/30320005788/job/90153716546",
       "status": "completed",
       "conclusion": "failure",
-      "created_at": "2026-07-28T01:17:50Z",
-      "started_at": "2026-07-28T01:17:52Z",
-      "completed_at": "2026-07-28T01:18:00Z",
+      "created_at": "2026-07-28T01:21:15Z",
+      "started_at": "2026-07-28T01:21:24Z",
+      "completed_at": "2026-07-28T01:21:32Z",
       "name": "configure",
       "steps": [
         {
@@ -24,72 +24,72 @@
           "status": "completed",
           "conclusion": "success",
           "number": 1,
-          "started_at": "2026-07-28T01:17:53Z",
-          "completed_at": "2026-07-28T01:17:53Z"
+          "started_at": "2026-07-28T01:21:25Z",
+          "completed_at": "2026-07-28T01:21:26Z"
         },
         {
           "name": "Run actions/checkout@v4",
           "status": "completed",
           "conclusion": "success",
           "number": 2,
-          "started_at": "2026-07-28T01:17:53Z",
-          "completed_at": "2026-07-28T01:17:54Z"
+          "started_at": "2026-07-28T01:21:26Z",
+          "completed_at": "2026-07-28T01:21:26Z"
         },
         {
           "name": "Run actions/setup-node@v4",
           "status": "completed",
           "conclusion": "success",
           "number": 3,
-          "started_at": "2026-07-28T01:17:54Z",
-          "completed_at": "2026-07-28T01:17:57Z"
+          "started_at": "2026-07-28T01:21:26Z",
+          "completed_at": "2026-07-28T01:21:27Z"
         },
         {
           "name": "Request policy change from site backend",
           "status": "completed",
           "conclusion": "failure",
           "number": 4,
-          "started_at": "2026-07-28T01:17:57Z",
-          "completed_at": "2026-07-28T01:17:57Z"
+          "started_at": "2026-07-28T01:21:27Z",
+          "completed_at": "2026-07-28T01:21:30Z"
         },
         {
           "name": "Save configuration result",
           "status": "completed",
           "conclusion": "success",
           "number": 5,
-          "started_at": "2026-07-28T01:17:57Z",
-          "completed_at": "2026-07-28T01:17:57Z"
+          "started_at": "2026-07-28T01:21:30Z",
+          "completed_at": "2026-07-28T01:21:31Z"
         },
         {
           "name": "Post Run actions/setup-node@v4",
           "status": "completed",
           "conclusion": "skipped",
           "number": 9,
-          "started_at": "2026-07-28T01:17:57Z",
-          "completed_at": "2026-07-28T01:17:57Z"
+          "started_at": "2026-07-28T01:21:31Z",
+          "completed_at": "2026-07-28T01:21:31Z"
         },
         {
           "name": "Post Run actions/checkout@v4",
           "status": "completed",
           "conclusion": "success",
           "number": 10,
-          "started_at": "2026-07-28T01:17:57Z",
-          "completed_at": "2026-07-28T01:17:57Z"
+          "started_at": "2026-07-28T01:21:31Z",
+          "completed_at": "2026-07-28T01:21:31Z"
         },
         {
           "name": "Complete job",
           "status": "completed",
           "conclusion": "success",
           "number": 11,
-          "started_at": "2026-07-28T01:17:57Z",
-          "completed_at": "2026-07-28T01:17:57Z"
+          "started_at": "2026-07-28T01:21:31Z",
+          "completed_at": "2026-07-28T01:21:31Z"
         }
       ],
-      "check_run_url": "https://api.github.com/repos/aburakturan-ch/signal60-runner/check-runs/90153243412",
+      "check_run_url": "https://api.github.com/repos/aburakturan-ch/signal60-runner/check-runs/90153716546",
       "labels": [
         "ubuntu-latest"
       ],
-      "runner_id": 1000000227,
-      "runner_name": "GitHub Actions 1000000227",
+      "runner_id": 1000000232,
+      "runner_name": "GitHub Actions 1000000232",
       "runner_group_id": 0,
       "runner_group_name": "GitHub Actions"
     }
