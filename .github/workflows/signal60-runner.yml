@@ -20,7 +20,7 @@ permissions:
 jobs:
   market-cycle:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 8
     steps:
       - name: Check out runner
         uses: actions/checkout@v4
