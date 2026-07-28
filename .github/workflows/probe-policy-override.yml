@@ -20,59 +20,53 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Run one paper cycle with explicit policy override
+      - name: Run and capture policy probe
+        id: probe
+        continue-on-error: true
         env:
           SIGNAL60_SITE_URL: https://binance-hourly-heatmap.burakturan000.chatgpt.site
           SIGNAL60_RUNNER_ID: github-actions-policy-probe
         run: |
-          set -euo pipefail
-          python - <<'PY'
+          set +e
+          mkdir -p diagnostics
+          python - <<'PY' > diagnostics/policy-probe.log 2>&1
           from pathlib import Path
           src=Path('runner/signal60-runner.mjs').read_text()
-          src=src.replace('const KLINE_BATCH_SIZE = 4;', '''const KLINE_BATCH_SIZE = 4;
-          const POLICY_OVERRIDES = {
-            maxOrderUsd: 5,
-            maxAssetExposureUsd: 10,
-            maxOpenPositions: 12,
-            maxPortfolioExposurePct: 80,
-            cooldownMinutes: 5,
-            minimumVerifiedSamples: 20,
-            minimumVerifiedAccuracyPct: 48,
-            minimumNetEdgePct: 0,
-          };''')
-          src=src.replace('''    tickers,
-          });''','''    tickers,
-            policy: POLICY_OVERRIDES,
-          });''',1)
-          src=src.replace('''      datasets,
-            },''','''      datasets,
-              policy: POLICY_OVERRIDES,
-            },''',1)
+          marker='const KLINE_BATCH_SIZE = 4;'
+          assert marker in src
+          src=src.replace(marker, marker + '''\nconst POLICY_OVERRIDES = {maxOrderUsd:5,maxAssetExposureUsd:10,maxOpenPositions:12,maxPortfolioExposurePct:80,cooldownMinutes:5,minimumVerifiedSamples:20,minimumVerifiedAccuracyPct:48,minimumNetEdgePct:0};''',1)
+          old='''    tickers,\n  });'''
+          assert old in src
+          src=src.replace(old,'''    tickers,\n    policy: POLICY_OVERRIDES,\n  });''',1)
+          old2='''      datasets,\n    },'''
+          assert old2 in src
+          src=src.replace(old2,'''      datasets,\n      policy: POLICY_OVERRIDES,\n    },''',1)
           Path('/tmp/policy-probe.mjs').write_text(src)
           PY
-          node /tmp/policy-probe.mjs | tee /tmp/probe-output.txt
-          sleep 3
-          curl -fsSL https://binance-hourly-heatmap.burakturan000.chatgpt.site/api/market -o /tmp/market-after.json
-          node - <<'NODE'
+          py_status=$?
+          echo "python_patch_exit=$py_status" >> diagnostics/policy-probe.log
+          if [ "$py_status" -eq 0 ]; then
+            node /tmp/policy-probe.mjs >> diagnostics/policy-probe.log 2>&1
+            echo "runner_exit=$?" >> diagnostics/policy-probe.log
+          fi
+          curl -sS -w '\nhttp_status=%{http_code}\n' https://binance-hourly-heatmap.burakturan000.chatgpt.site/api/market -o /tmp/market-after.json >> diagnostics/policy-probe.log 2>&1
+          node - <<'NODE' >> diagnostics/policy-probe.log 2>&1
           const fs=require('fs');
-          const m=JSON.parse(fs.readFileSync('/tmp/market-after.json','utf8'));
-          const out={
-            checkedAt:new Date().toISOString(),
-            policy:m.trading?.policy??null,
-            cycle:m.trading?.cycle??null,
-            positions:(m.trading?.positions??[]).length,
-            orders:(m.trading?.orders??[]).length,
-            latestOrders:(m.trading?.orders??[]).slice(-20),
-            runner:m.runner??null
-          };
-          fs.mkdirSync('diagnostics',{recursive:true});
-          fs.writeFileSync('diagnostics/policy-probe-result.json',JSON.stringify(out,null,2)+'\n');
-          console.log(JSON.stringify(out));
+          if(!fs.existsSync('/tmp/market-after.json')) process.exit(0);
+          try {
+            const m=JSON.parse(fs.readFileSync('/tmp/market-after.json','utf8'));
+            const out={checkedAt:new Date().toISOString(),policy:m.trading?.policy??null,cycle:m.trading?.cycle??null,positions:(m.trading?.positions??[]).length,orders:(m.trading?.orders??[]).length,runner:m.runner??null};
+            fs.writeFileSync('diagnostics/policy-probe-result.json',JSON.stringify(out,null,2)+'\n');
+            console.log(JSON.stringify(out));
+          } catch(e){ console.error(e); }
           NODE
-      - name: Save result
+          exit 0
+      - name: Save diagnostics
+        if: always()
         run: |
           git config user.name signal60-diagnostic
           git config user.email signal60-diagnostic@users.noreply.github.com
-          git add diagnostics/policy-probe-result.json
-          git commit -m "Record SIGNAL60 policy override probe"
+          git add diagnostics/policy-probe.log diagnostics/policy-probe-result.json || true
+          git diff --cached --quiet && exit 0
+          git commit -m "Record SIGNAL60 policy override probe diagnostics"
           git push origin HEAD:agent/diagnose-no-buys
