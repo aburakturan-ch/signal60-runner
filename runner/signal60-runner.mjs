@@ -162,7 +162,28 @@ async function postRunner(payload, attempts = 2) {
   throw lastError;
 }
 
-function compactTickers(rows, bookRows) {
+function tradableSpotUsdtSymbols(exchangeInfo) {
+  if (!exchangeInfo || !Array.isArray(exchangeInfo.symbols)) {
+    throw new Error("Binance exchangeInfo response is invalid");
+  }
+  return new Set(
+    exchangeInfo.symbols.flatMap((symbol) => {
+      if (
+        !symbol ||
+        typeof symbol !== "object" ||
+        typeof symbol.symbol !== "string" ||
+        symbol.status !== "TRADING" ||
+        symbol.quoteAsset !== "USDT" ||
+        symbol.isSpotTradingAllowed === false
+      ) {
+        return [];
+      }
+      return [symbol.symbol];
+    }),
+  );
+}
+
+function compactTickers(rows, bookRows, tradableSymbols) {
   const books = new Map(
     bookRows.flatMap((row) =>
       row &&
@@ -177,7 +198,8 @@ function compactTickers(rows, bookRows) {
       !row ||
       typeof row !== "object" ||
       typeof row.symbol !== "string" ||
-      !row.symbol.endsWith("USDT")
+      !row.symbol.endsWith("USDT") ||
+      !tradableSymbols.has(row.symbol)
     ) {
       return [];
     }
@@ -299,14 +321,21 @@ async function runCycle() {
   const startedAt = Date.now();
   const cycleStartedAt =
     Math.floor(startedAt / (5 * 60 * 1_000)) * (5 * 60 * 1_000);
-  const [rawTickers, rawBooks] = await Promise.all([
+  const [rawTickers, rawBooks, exchangeInfo] = await Promise.all([
     fetchBinance("/api/v3/ticker/24hr"),
     fetchBinance("/api/v3/ticker/bookTicker"),
+    fetchBinance("/api/v3/exchangeInfo"),
   ]);
   if (!Array.isArray(rawTickers) || !Array.isArray(rawBooks)) {
     throw new Error("Binance ticker or order-book response is not an array");
   }
-  const tickers = compactTickers(rawTickers, rawBooks);
+  const tradableSymbols = tradableSpotUsdtSymbols(exchangeInfo);
+  const tickers = compactTickers(rawTickers, rawBooks, tradableSymbols);
+  if (tickers.length < MINIMUM_DEEP_MODELS) {
+    throw new Error(
+      `Binance reported only ${tickers.length} actively tradable Spot USDT pairs`,
+    );
+  }
   const plan = await postRunner({
     action: "plan",
     runnerId: RUNNER_ID,
@@ -455,6 +484,7 @@ async function runCycle() {
     fusionRiskTracked: result.fusionRisk?.universe?.tracked ?? null,
     fusionRiskModeled: result.fusionRisk?.universe?.modeled ?? null,
     fusionRiskFailed: result.fusionRisk?.universe?.failed ?? null,
+    fusionRiskFetchFailureSample: failures.slice(0, 8),
     fusionRiskOrdersCreated:
       result.fusionRisk?.portfolio?.cycle?.ordersCreated ?? null,
     fusionRiskPositions:
