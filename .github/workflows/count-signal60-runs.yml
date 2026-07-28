@@ -1,0 +1,69 @@
+name: Count SIGNAL60 runner history
+
+on:
+  push:
+    branches: [agent/diagnose-no-buys]
+    paths-ignore:
+      - diagnostics/workflow-count.json
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/diagnose-no-buys
+      - name: Count workflow runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const target = 'SIGNAL60 24-7 Runner';
+          const headers = {
+            Accept: 'application/vnd.github+json',
+            Authorization: `Bearer ${process.env.GH_TOKEN}`,
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'signal60-diagnostic'
+          };
+          const all = [];
+          for (let page = 1; ; page++) {
+            const url = `https://api.github.com/repos/${process.env.REPO}/actions/runs?per_page=100&page=${page}`;
+            const response = await fetch(url, {headers});
+            if (!response.ok) throw new Error(`GitHub API ${response.status}`);
+            const body = await response.json();
+            const rows = body.workflow_runs || [];
+            all.push(...rows);
+            if (rows.length < 100) break;
+          }
+          const runs = all.filter(r => r.name === target);
+          const counts = {};
+          for (const run of runs) {
+            const key = run.conclusion || run.status || 'unknown';
+            counts[key] = (counts[key] || 0) + 1;
+          }
+          const result = {
+            countedAt: new Date().toISOString(),
+            workflow: target,
+            total: runs.length,
+            counts,
+            firstRunAt: runs.length ? runs[runs.length - 1].created_at : null,
+            lastRunAt: runs.length ? runs[0].created_at : null,
+            latest: runs.slice(0, 10).map(r => ({id:r.id,status:r.status,conclusion:r.conclusion,event:r.event,createdAt:r.created_at,updatedAt:r.updated_at,url:r.html_url}))
+          };
+          fs.mkdirSync('diagnostics', {recursive:true});
+          fs.writeFileSync('diagnostics/workflow-count.json', JSON.stringify(result, null, 2) + '\n');
+          console.log(JSON.stringify(result));
+          NODE
+      - name: Save result
+        run: |
+          git config user.name signal60-diagnostic
+          git config user.email signal60-diagnostic@users.noreply.github.com
+          git add diagnostics/workflow-count.json
+          git commit -m "Record SIGNAL60 workflow run counts"
+          git push origin HEAD:agent/diagnose-no-buys
