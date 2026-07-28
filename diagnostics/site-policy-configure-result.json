@@ -1,0 +1,36 @@
+{
+  "checkedAt": "2026-07-28T01:20:35.021Z",
+  "configureHttpStatus": 400,
+  "configureResponse": {
+    "error": "External runner cycle could not complete.",
+    "detail": "Runner identity or cycle clock is invalid",
+    "generatedAt": "2026-07-28T01:20:32.884Z"
+  },
+  "activePolicy": {
+    "initialCash": 100,
+    "maxOrderUsd": 2,
+    "maxAssetExposureUsd": 4,
+    "maxOpenPositions": 4,
+    "maxPortfolioExposurePct": 25,
+    "feePct": 0.1,
+    "slippagePct": 0.05,
+    "stopLossPct": -0.6,
+    "takeProfitPct": 1.2,
+    "cooldownMinutes": 60,
+    "minimumVerifiedSamples": 60,
+    "minimumVerifiedAccuracyPct": 54,
+    "roundTripFrictionPct": 0.3,
+    "minimumNetEdgePct": 0.1,
+    "shorting": false
+  },
+  "universe": {
+    "scanned": 625,
+    "eligible": 470,
+    "deeplyModeled": 16
+  },
+  "cycle": {
+    "id": "S60-PAPER-2.0:5950671",
+    "executed": true,
+    "note": "Cycle recorded; no new buy passed every risk gate."
+  }
+}
