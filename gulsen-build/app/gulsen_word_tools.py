@@ -13,7 +13,7 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__(); self.title(APP_NAME); self.configure(bg=BG)
         sw,sh=self.winfo_screenwidth(),self.winfo_screenheight(); self.geometry(f"{min(860,max(650,int(sw*.76)))}x{min(500,max(370,int(sh*.68)))}"); self.minsize(620,350)
-        self.rf=[]; self.pf=[]; self.rr=tk.BooleanVar(False); self.pr=tk.BooleanVar(False); self.img=tk.BooleanVar(False); self.rs=tk.StringVar(value="Hazır"); self.ps=tk.StringVar(value="Hazır"); self.q=queue.Queue()
+        self.rf=[]; self.pf=[]; self.rr=tk.BooleanVar(value=False); self.pr=tk.BooleanVar(value=False); self.img=tk.BooleanVar(value=False); self.rs=tk.StringVar(value="Hazır"); self.ps=tk.StringVar(value="Hazır"); self.q=queue.Queue()
         self._style(); self._ui(); self.after(100,self._poll)
     def ff(self): return "Segoe UI" if platform.system()=="Windows" else "Helvetica Neue"
     def _style(self):
