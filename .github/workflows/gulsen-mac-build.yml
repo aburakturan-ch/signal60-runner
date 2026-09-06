@@ -25,13 +25,16 @@ jobs:
           set -euo pipefail
           uname -a
           test "$(uname -m)" = "arm64"
-      - name: Install Python Tk and dependencies
+      - name: Install Python Tk and dependencies in venv
         shell: bash
         run: |
           set -euo pipefail
           brew install python@3.12 python-tk@3.12
-          PY="$(brew --prefix python@3.12)/bin/python3.12"
-          "$PY" -c 'import platform, tkinter; print(platform.machine()); print(tkinter.TkVersion)'
+          BASE="$(brew --prefix python@3.12)/bin/python3.12"
+          "$BASE" -c 'import platform, tkinter; print(platform.machine()); print(tkinter.TkVersion)'
+          "$BASE" -m venv .venv
+          PY="$GITHUB_WORKSPACE/.venv/bin/python"
+          "$PY" -c 'import tkinter; print("venv Tk", tkinter.TkVersion)'
           "$PY" -m pip install --upgrade pip
           "$PY" -m pip install -r gulsen-build/requirements.txt pyinstaller==6.16.0
           echo "PYTHON_BIN=$PY" >> "$GITHUB_ENV"
