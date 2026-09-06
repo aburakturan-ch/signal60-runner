@@ -1,9 +1,9 @@
-name: Build Gulsen Word Tools Windows v0.2.3
+name: Build Gulsen Word Tools Windows Compatibility v0.2.4
 
 on:
   push:
     branches:
-      - gulsen-v023-build
+      - gulsen-wincompat-v024
     paths:
       - "gulsen-build/**"
       - ".github/workflows/gulsen-win-build.yml"
@@ -13,30 +13,32 @@ permissions:
   contents: read
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
-    timeout-minutes: 20
+  build-windows-compat:
+    runs-on: windows-2022
+    timeout-minutes: 25
     steps:
-      - name: Checkout build branch
+      - name: Checkout
         uses: actions/checkout@v4
-      - name: Set up Python 3.12
+
+      - name: Set up Python 3.11 x64
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.11"
+          architecture: "x64"
           cache: "pip"
           cache-dependency-path: gulsen-build/requirements.txt
+
       - name: Install dependencies
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r gulsen-build/requirements.txt pyinstaller==6.16.0
-      - name: Compile-check Python sources
+          python -c "import platform,sys; print(sys.version); print(platform.architecture()); print(platform.machine())"
+
+      - name: Compile and engine tests
         shell: pwsh
         run: |
           python -m py_compile gulsen-build/app/gulsen_word_tools.py gulsen-build/app/line_repair.py gulsen-build/app/pdf_to_word.py
-      - name: Functional engine smoke tests
-        shell: pwsh
-        run: |
           $env:PYTHONPATH = "${{ github.workspace }}\gulsen-build\app"
           @'
           from pathlib import Path
@@ -46,36 +48,61 @@ jobs:
           from line_repair import repair_file
           from pdf_to_word import convert_pdf_to_word
           with TemporaryDirectory() as td:
-              root=Path(td); d=Document(); d.add_paragraph("Bu cümle kopyalama hatası yüzünden burada"); d.add_paragraph("alt satırda devam etmektedir."); source=root/"ornek.docx"; d.save(source)
+              root=Path(td)
+              d=Document(); d.add_paragraph("Bu cümle kopyalama hatası yüzünden burada"); d.add_paragraph("alt satırda devam etmektedir."); source=root/"ornek.docx"; d.save(source)
               r=repair_file(source); assert not r.skipped and r.output.exists() and r.repaired_breaks>=1
-              pdf=fitz.open(); page=pdf.new_page(); page.insert_text((72,72),"PDF aktarım denemesi",fontsize=14); pp=root/"ornek.pdf"; pdf.save(pp); pdf.close()
+              pdf=fitz.open(); page=pdf.new_page(); page.insert_text((72,72),"PDF aktarim denemesi",fontsize=14); pp=root/"ornek.pdf"; pdf.save(pp); pdf.close()
               c=convert_pdf_to_word(pp,include_images=False); assert not c.skipped and c.output.exists() and c.pages==1
-          print("Motor testleri geçti.")
+          print("Motor testleri gecti.")
           '@ | python -
-      - name: Build standalone EXE
+
+      - name: Build compatibility one-file EXE
         shell: pwsh
         run: |
           pyinstaller --noconfirm --clean --onefile --windowed `
-            --name "Gulsen_Word_Araclari" `
+            --name "GulsenWordTools" `
             --paths gulsen-build/app `
             --collect-all pymupdf `
             gulsen-build/app/gulsen_word_tools.py
-          Rename-Item -LiteralPath "dist\Gulsen_Word_Araclari.exe" -NewName "Gülşen'in Word Araçları.exe"
-      - name: Verify EXE and launch smoke test
+          New-Item -ItemType Directory -Force -Path out | Out-Null
+          Copy-Item -LiteralPath "dist\GulsenWordTools.exe" -Destination "out\GulsenWordTools_Windows10_11_x64.exe"
+
+      - name: Build compatibility folder edition
         shell: pwsh
         run: |
-          $exe = Get-ChildItem dist\*.exe | Select-Object -First 1
-          if (-not $exe) { throw "EXE üretilmedi" }
-          if ($exe.Length -lt 5000000) { throw "EXE beklenenden küçük: $($exe.Length)" }
-          $bytes=[System.IO.File]::ReadAllBytes($exe.FullName); if ($bytes[0]-ne 0x4D -or $bytes[1]-ne 0x5A) { throw "Geçerli Windows PE/MZ dosyası değil" }
-          $p=Start-Process -FilePath $exe.FullName -PassThru; Start-Sleep -Seconds 5; if ($p.HasExited) { throw "Uygulama erken kapandı" }; Stop-Process -Id $p.Id -Force
-          $hash=(Get-FileHash $exe.FullName -Algorithm SHA256).Hash; "SHA256  $hash  $($exe.Name)" | Set-Content -Encoding UTF8 dist\SHA256.txt
-      - name: Upload standalone Windows app
+          Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
+          pyinstaller --noconfirm --clean --windowed `
+            --name "GulsenWordTools" `
+            --paths gulsen-build/app `
+            --collect-all pymupdf `
+            gulsen-build/app/gulsen_word_tools.py
+          Compress-Archive -Path "dist\GulsenWordTools\*" -DestinationPath "out\GulsenWordTools_Windows10_11_x64_CompatibilityFolder.zip" -CompressionLevel Optimal
+
+      - name: Verify PE and launch both builds
+        shell: pwsh
+        run: |
+          $one = Resolve-Path "out\GulsenWordTools_Windows10_11_x64.exe"
+          $folderExe = Resolve-Path "dist\GulsenWordTools\GulsenWordTools.exe"
+          foreach ($exe in @($one,$folderExe)) {
+            $bytes=[System.IO.File]::ReadAllBytes($exe)
+            if ($bytes[0]-ne 0x4D -or $bytes[1]-ne 0x5A) { throw "PE/MZ degil: $exe" }
+            $p=Start-Process -FilePath $exe -PassThru
+            Start-Sleep -Seconds 5
+            if ($p.HasExited) { throw "Uygulama erken kapandi: $exe ExitCode=$($p.ExitCode)" }
+            Stop-Process -Id $p.Id -Force
+          }
+          Get-FileHash "out\GulsenWordTools_Windows10_11_x64.exe" -Algorithm SHA256 | Format-List | Out-String | Set-Content -Encoding UTF8 "out\SHA256-onefile.txt"
+          Get-FileHash "out\GulsenWordTools_Windows10_11_x64_CompatibilityFolder.zip" -Algorithm SHA256 | Format-List | Out-String | Set-Content -Encoding UTF8 "out\SHA256-folder.txt"
+
+      - name: Upload compatibility builds
         uses: actions/upload-artifact@v4
         with:
-          name: Gulsen-Word-Araclari-Windows-v0.2.3
+          name: GulsenWordTools-Windows10-11-x64-v0.2.4
           path: |
-            dist/*.exe
-            dist/SHA256.txt
+            out/GulsenWordTools_Windows10_11_x64.exe
+            out/GulsenWordTools_Windows10_11_x64_CompatibilityFolder.zip
+            out/SHA256-onefile.txt
+            out/SHA256-folder.txt
           if-no-files-found: error
-          compression-level: 6
+          compression-level: 0
