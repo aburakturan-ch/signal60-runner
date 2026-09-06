@@ -48,7 +48,7 @@ jobs:
           from line_repair import repair_file
           from pdf_to_word import convert_pdf_to_word
           with TemporaryDirectory() as td:
-              root=Path(td); d=Document(); d.add_paragraph('Bu cümle burada'); d.add_paragraph('devam etmektedir.'); source=root/'ornek.docx'; d.save(source)
+              root=Path(td); d=Document(); d.add_paragraph('Bu cümle kopyalama hatası yüzünden burada'); d.add_paragraph('alt satırda devam etmektedir.'); source=root/'ornek.docx'; d.save(source)
               r=repair_file(source); assert not r.skipped and r.output.exists() and r.repaired_breaks>=1
               pdf=fitz.open(); page=pdf.new_page(); page.insert_text((72,72),'PDF aktarim denemesi',fontsize=14); pp=root/'ornek.pdf'; pdf.save(pp); pdf.close()
               c=convert_pdf_to_word(pp,include_images=False); assert not c.skipped and c.output.exists() and c.pages==1
