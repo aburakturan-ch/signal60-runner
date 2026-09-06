@@ -1,0 +1,90 @@
+name: Build Gulsen Word Tools macOS Apple Silicon v0.2.3
+
+on:
+  push:
+    branches:
+      - gulsen-v023-build
+    paths:
+      - "gulsen-build/**"
+      - ".github/workflows/gulsen-mac-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos-arm64:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Checkout build branch
+        uses: actions/checkout@v4
+      - name: Verify Apple Silicon
+        shell: bash
+        run: |
+          set -euo pipefail
+          uname -a
+          test "$(uname -m)" = "arm64"
+      - name: Install Python Tk and dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install python@3.12 python-tk@3.12
+          PY="$(brew --prefix python@3.12)/bin/python3.12"
+          "$PY" -c 'import platform, tkinter; print(platform.machine()); print(tkinter.TkVersion)'
+          "$PY" -m pip install --upgrade pip
+          "$PY" -m pip install -r gulsen-build/requirements.txt pyinstaller==6.16.0
+          echo "PYTHON_BIN=$PY" >> "$GITHUB_ENV"
+      - name: Compile and engine smoke tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" -m py_compile gulsen-build/app/gulsen_word_tools.py gulsen-build/app/line_repair.py gulsen-build/app/pdf_to_word.py
+          PYTHONPATH="$GITHUB_WORKSPACE/gulsen-build/app" "$PYTHON_BIN" - <<'PY'
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from docx import Document
+          import pymupdf as fitz
+          from line_repair import repair_file
+          from pdf_to_word import convert_pdf_to_word
+          with TemporaryDirectory() as td:
+              root=Path(td); d=Document(); d.add_paragraph('Bu cümle burada'); d.add_paragraph('devam etmektedir.'); source=root/'ornek.docx'; d.save(source)
+              r=repair_file(source); assert not r.skipped and r.output.exists() and r.repaired_breaks>=1
+              pdf=fitz.open(); page=pdf.new_page(); page.insert_text((72,72),'PDF aktarim denemesi',fontsize=14); pp=root/'ornek.pdf'; pdf.save(pp); pdf.close()
+              c=convert_pdf_to_word(pp,include_images=False); assert not c.skipped and c.output.exists() and c.pages==1
+          print('Motor testleri geçti.')
+          PY
+      - name: Build arm64 app bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" -m PyInstaller --noconfirm --clean --windowed --name GulsenWordTools --paths gulsen-build/app --collect-all pymupdf gulsen-build/app/gulsen_word_tools.py
+          APP="dist/GulsenWordTools.app"; test -d "$APP"
+          BIN="$APP/Contents/MacOS/GulsenWordTools"; file "$BIN"; file "$BIN" | grep -q arm64
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Gülşen'in Word Araçları" "$APP/Contents/Info.plist" || /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Gülşen'in Word Araçları" "$APP/Contents/Info.plist"
+          FINAL="dist/Gülşen'in Word Araçları.app"; mv "$APP" "$FINAL"; xattr -cr "$FINAL" || true
+          codesign --force --deep --sign - "$FINAL"; codesign --verify --deep --strict --verbose=2 "$FINAL"
+      - name: Launch smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN="dist/Gülşen'in Word Araçları.app/Contents/MacOS/GulsenWordTools"
+          "$BIN" >/tmp/gulsen.log 2>&1 & PID=$!; sleep 5
+          if ! kill -0 "$PID" 2>/dev/null; then cat /tmp/gulsen.log || true; exit 1; fi
+          kill "$PID" || true; wait "$PID" || true
+      - name: Package app
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          ditto -c -k --sequesterRsrc --keepParent "Gülşen'in Word Araçları.app" "Gulsens_Word_Araclari_Mac_AppleSilicon_v0.2.3.zip"
+          shasum -a 256 "Gulsens_Word_Araclari_Mac_AppleSilicon_v0.2.3.zip" > SHA256-Mac.txt
+      - name: Upload macOS standalone
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gulsen-Word-Araclari-Mac-AppleSilicon-v0.2.3
+          path: |
+            dist/Gulsens_Word_Araclari_Mac_AppleSilicon_v0.2.3.zip
+            dist/SHA256-Mac.txt
+          if-no-files-found: error
+          compression-level: 0
