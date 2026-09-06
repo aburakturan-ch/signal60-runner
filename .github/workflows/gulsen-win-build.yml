@@ -81,10 +81,11 @@ jobs:
         shell: pwsh
         run: |
           pyinstaller --noconfirm --clean --onefile --windowed `
-            --name "Gülşen'in Word Araçları" `
+            --name "Gulsen_Word_Araclari" `
             --paths gulsen-build/app `
             --collect-all pymupdf `
             gulsen-build/app/gulsen_word_tools.py
+          Rename-Item -LiteralPath "dist\Gulsen_Word_Araclari.exe" -NewName "Gülşen'in Word Araçları.exe"
 
       - name: Verify EXE and launch smoke test
         shell: pwsh
