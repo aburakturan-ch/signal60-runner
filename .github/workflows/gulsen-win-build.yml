@@ -1,9 +1,9 @@
-name: Build Gulsen Word Tools Windows
+name: Build Gulsen Word Tools Windows v0.2.3
 
 on:
   push:
     branches:
-      - gulsen-win-build
+      - gulsen-v023-build
     paths:
       - "gulsen-build/**"
       - ".github/workflows/gulsen-win-build.yml"
@@ -16,29 +16,24 @@ jobs:
   build-windows:
     runs-on: windows-latest
     timeout-minutes: 20
-
     steps:
       - name: Checkout build branch
         uses: actions/checkout@v4
-
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: "pip"
           cache-dependency-path: gulsen-build/requirements.txt
-
       - name: Install dependencies
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r gulsen-build/requirements.txt pyinstaller==6.16.0
-
       - name: Compile-check Python sources
         shell: pwsh
         run: |
           python -m py_compile gulsen-build/app/gulsen_word_tools.py gulsen-build/app/line_repair.py gulsen-build/app/pdf_to_word.py
-
       - name: Functional engine smoke tests
         shell: pwsh
         run: |
@@ -50,33 +45,13 @@ jobs:
           import pymupdf as fitz
           from line_repair import repair_file
           from pdf_to_word import convert_pdf_to_word
-
           with TemporaryDirectory() as td:
-              root = Path(td)
-              d = Document()
-              d.add_paragraph("Bu cümle kopyalama hatası yüzünden burada")
-              d.add_paragraph("alt satırda devam etmektedir.")
-              source = root / "ornek.docx"
-              d.save(source)
-              r = repair_file(source)
-              assert not r.skipped, r.message
-              assert r.output.exists(), "Düzelti kopyası oluşmadı"
-              assert r.repaired_breaks >= 1, "Satır onarımı gerçekleşmedi"
-              assert source.exists(), "Kaynak dosya korunmadı"
-
-              pdf = fitz.open()
-              page = pdf.new_page()
-              page.insert_text((72, 72), "PDF aktarım denemesi", fontsize=14)
-              pdf_path = root / "ornek.pdf"
-              pdf.save(pdf_path)
-              pdf.close()
-              c = convert_pdf_to_word(pdf_path, include_images=False)
-              assert not c.skipped, c.message
-              assert c.output.exists(), "Aktarma Word dosyası oluşmadı"
-              assert c.pages == 1
+              root=Path(td); d=Document(); d.add_paragraph("Bu cümle burada"); d.add_paragraph("devam etmektedir."); source=root/"ornek.docx"; d.save(source)
+              r=repair_file(source); assert not r.skipped and r.output.exists() and r.repaired_breaks>=1
+              pdf=fitz.open(); page=pdf.new_page(); page.insert_text((72,72),"PDF aktarım denemesi",fontsize=14); pp=root/"ornek.pdf"; pdf.save(pp); pdf.close()
+              c=convert_pdf_to_word(pp,include_images=False); assert not c.skipped and c.output.exists() and c.pages==1
           print("Motor testleri geçti.")
           '@ | python -
-
       - name: Build standalone EXE
         shell: pwsh
         run: |
@@ -86,28 +61,19 @@ jobs:
             --collect-all pymupdf `
             gulsen-build/app/gulsen_word_tools.py
           Rename-Item -LiteralPath "dist\Gulsen_Word_Araclari.exe" -NewName "Gülşen'in Word Araçları.exe"
-
       - name: Verify EXE and launch smoke test
         shell: pwsh
         run: |
           $exe = Get-ChildItem dist\*.exe | Select-Object -First 1
           if (-not $exe) { throw "EXE üretilmedi" }
           if ($exe.Length -lt 5000000) { throw "EXE beklenenden küçük: $($exe.Length)" }
-          $bytes = [System.IO.File]::ReadAllBytes($exe.FullName)
-          if ($bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { throw "Geçerli Windows PE/MZ dosyası değil" }
-          Write-Host "EXE: $($exe.FullName)"
-          Write-Host "Boyut: $([math]::Round($exe.Length/1MB,2)) MB"
-          $p = Start-Process -FilePath $exe.FullName -PassThru
-          Start-Sleep -Seconds 5
-          if ($p.HasExited) { throw "Uygulama açılış testinde erken kapandı. ExitCode=$($p.ExitCode)" }
-          Stop-Process -Id $p.Id -Force
-          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash
-          "SHA256  $hash  $($exe.Name)" | Set-Content -Encoding UTF8 dist\SHA256.txt
-
+          $bytes=[System.IO.File]::ReadAllBytes($exe.FullName); if ($bytes[0]-ne 0x4D -or $bytes[1]-ne 0x5A) { throw "Geçerli Windows PE/MZ dosyası değil" }
+          $p=Start-Process -FilePath $exe.FullName -PassThru; Start-Sleep -Seconds 5; if ($p.HasExited) { throw "Uygulama erken kapandı" }; Stop-Process -Id $p.Id -Force
+          $hash=(Get-FileHash $exe.FullName -Algorithm SHA256).Hash; "SHA256  $hash  $($exe.Name)" | Set-Content -Encoding UTF8 dist\SHA256.txt
       - name: Upload standalone Windows app
         uses: actions/upload-artifact@v4
         with:
-          name: Gulsen-Word-Araclari-Windows-v0.2.2
+          name: Gulsen-Word-Araclari-Windows-v0.2.3
           path: |
             dist/*.exe
             dist/SHA256.txt
