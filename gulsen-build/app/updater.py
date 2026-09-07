@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import os
@@ -156,37 +157,76 @@ def install_staged(asset: Path) -> None:
         raise RuntimeError("Bu işletim sistemi için otomatik güncelleme desteklenmiyor.")
 
 
+def _ps_literal(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
+def _windows_updater_script(asset: Path, current: Path) -> str:
+    asset_lit = _ps_literal(str(asset))
+    current_lit = _ps_literal(str(current))
+    work_lit = _ps_literal(str(current.parent))
+    return f"""$ErrorActionPreference = 'SilentlyContinue'
+$asset = {asset_lit}
+$current = {current_lit}
+$work = {work_lit}
+Start-Sleep -Milliseconds 1600
+$ok = $false
+for ($i = 0; $i -lt 40; $i++) {{
+    try {{
+        Copy-Item -LiteralPath $asset -Destination $current -Force -ErrorAction Stop
+        $ok = $true
+        break
+    }} catch {{
+        Start-Sleep -Milliseconds 500
+    }}
+}}
+if ($ok) {{
+    try {{ Start-Process -FilePath $current -WorkingDirectory $work | Out-Null }} catch {{}}
+    try {{ Remove-Item -LiteralPath $asset -Force -ErrorAction SilentlyContinue }} catch {{}}
+    exit 0
+}}
+try {{ Start-Process -FilePath $current -WorkingDirectory $work | Out-Null }} catch {{}}
+exit 1
+"""
+
+
+def _encode_powershell(script: str) -> str:
+    return base64.b64encode(script.encode("utf-16le")).decode("ascii")
+
+
 def _install_windows(asset: Path):
     current = Path(sys.executable).resolve()
     if asset.suffix.lower() != ".exe":
         raise RuntimeError("Windows güncelleme paketi EXE değil.")
 
-    td = asset.parent
-    script = td / "gulsen_update.cmd"
-    script.write_text(
-        "@echo off\r\n"
-        "chcp 65001 >nul\r\n"
-        "timeout /t 2 /nobreak >nul\r\n"
-        "set TRY=0\r\n"
-        ":RETRY\r\n"
-        f'copy /Y "{asset}" "{current}" >nul 2>nul\r\n'
-        "if %errorlevel%==0 goto STARTAPP\r\n"
-        "set /a TRY+=1\r\n"
-        "if %TRY% GEQ 12 goto FAIL\r\n"
-        "timeout /t 1 /nobreak >nul\r\n"
-        "goto RETRY\r\n"
-        ":STARTAPP\r\n"
-        f'start "" "{current}"\r\n'
-        f'del /Q "{asset}" >nul 2>nul\r\n'
-        'del /Q "%~f0" >nul 2>nul\r\n'
-        "exit /b 0\r\n"
-        ":FAIL\r\n"
-        f'start "" "{current}"\r\n'
-        "exit /b 1\r\n",
-        encoding="utf-8",
+    script = _windows_updater_script(asset, current)
+    encoded = _encode_powershell(script)
+    powershell = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+    exe = str(powershell if powershell.exists() else "powershell.exe")
+
+    flags = 0
+    flags |= getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    flags |= getattr(subprocess, "DETACHED_PROCESS", 0)
+    flags |= getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+
+    subprocess.Popen(
+        [
+            exe,
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-WindowStyle",
+            "Hidden",
+            "-EncodedCommand",
+            encoded,
+        ],
+        creationflags=flags,
+        close_fds=True,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
-    flags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) | getattr(subprocess, "DETACHED_PROCESS", 0)
-    subprocess.Popen(["cmd.exe", "/c", str(script)], creationflags=flags, close_fds=True)
 
 
 def _install_macos(asset: Path):
