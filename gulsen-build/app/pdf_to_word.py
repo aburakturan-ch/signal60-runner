@@ -38,6 +38,15 @@ def _cancelled(cancel_event) -> bool:
         return False
 
 
+def _progress(callback, value: float, message: str = ""):
+    if callback is None:
+        return
+    try:
+        callback(max(0.0, min(100.0, float(value))), message)
+    except Exception:
+        pass
+
+
 def output_path_for_media(source: Path) -> Path:
     return source.with_name(f"{source.stem}_Aktarma.docx")
 
@@ -159,8 +168,7 @@ def _add_ocr_text(word: Document, text: str):
 
 
 def _render_page_image(page) -> Image.Image:
-    mat = fitz.Matrix(2.4, 2.4)
-    pix = page.get_pixmap(matrix=mat, alpha=False)
+    pix = page.get_pixmap(matrix=fitz.Matrix(2.4, 2.4), alpha=False)
     return Image.open(io.BytesIO(pix.tobytes('png'))).convert('RGB')
 
 
@@ -173,7 +181,7 @@ def _cancel_result(source: Path, out: Path, pages=0, imgs=0, ocr_pages=0):
     return ConvertResult(source, out, pages, imgs, ocr_pages, True, 'İptal edildi.', True)
 
 
-def _convert_pdf(source: Path, include_images: bool, cancel_event=None) -> ConvertResult:
+def _convert_pdf(source: Path, include_images: bool, cancel_event=None, progress_callback=None) -> ConvertResult:
     out = output_path_for_media(source)
     word = Document()
     _set_default_margins(word)
@@ -181,6 +189,8 @@ def _convert_pdf(source: Path, include_images: bool, cancel_event=None) -> Conve
 
     try:
         pdf = fitz.open(source)
+        total_pages = max(1, len(pdf))
+        _progress(progress_callback, 2, "PDF açıldı")
         with tempfile.TemporaryDirectory(prefix='gulsen_pdf_') as td:
             tmpdir = Path(td)
             for pi, page in enumerate(pdf):
@@ -188,7 +198,11 @@ def _convert_pdf(source: Path, include_images: bool, cancel_event=None) -> Conve
                     pdf.close()
                     return _cancel_result(source, out, pages, imgs, ocr_pages)
 
+                page_base = (pi / total_pages) * 92.0
+                page_span = 92.0 / total_pages
+                _progress(progress_callback, page_base + 3, f"Sayfa {pi + 1}/{total_pages} hazırlanıyor")
                 pages += 1
+
                 if _page_has_useful_text(page):
                     pdata = page.get_text('dict', flags=11)
                     blocks = sorted(
@@ -196,7 +210,8 @@ def _convert_pdf(source: Path, include_images: bool, cancel_event=None) -> Conve
                         key=lambda b: (round(b.get('bbox', [0, 0, 0, 0])[1], 1), round(b.get('bbox', [0, 0, 0, 0])[0], 1)),
                     )
                     any_text = False
-                    for block in blocks:
+                    block_total = max(1, len(blocks))
+                    for bi, block in enumerate(blocks):
                         if _cancelled(cancel_event):
                             pdf.close()
                             return _cancel_result(source, out, pages, imgs, ocr_pages)
@@ -207,9 +222,13 @@ def _convert_pdf(source: Path, include_images: bool, cancel_event=None) -> Conve
                             pth = _save_block_image(block, tmpdir)
                             if pth and _add_picture_safe(word, pth):
                                 imgs += 1
+                        _progress(progress_callback, page_base + page_span * (0.15 + 0.55 * ((bi + 1) / block_total)), f"Sayfa {pi + 1}/{total_pages} işleniyor")
+
                     if not any_text:
                         image = _render_page_image(page)
-                        res = ocr_image(image, cancel_event=cancel_event)
+                        def nested(v, msg):
+                            _progress(progress_callback, page_base + page_span * (0.18 + 0.72 * (v / 100.0)), f"Sayfa {pi + 1}/{total_pages} • {msg}")
+                        res = ocr_image(image, cancel_event=cancel_event, progress_callback=nested)
                         if res.cancelled or _cancelled(cancel_event):
                             pdf.close()
                             return _cancel_result(source, out, pages, imgs, ocr_pages)
@@ -217,7 +236,9 @@ def _convert_pdf(source: Path, include_images: bool, cancel_event=None) -> Conve
                         ocr_pages += 1
                 else:
                     image = _render_page_image(page)
-                    res = ocr_image(image, cancel_event=cancel_event)
+                    def nested(v, msg):
+                        _progress(progress_callback, page_base + page_span * (0.10 + 0.78 * (v / 100.0)), f"Sayfa {pi + 1}/{total_pages} • {msg}")
+                    res = ocr_image(image, cancel_event=cancel_event, progress_callback=nested)
                     if res.cancelled or _cancelled(cancel_event):
                         pdf.close()
                         return _cancel_result(source, out, pages, imgs, ocr_pages)
@@ -231,11 +252,14 @@ def _convert_pdf(source: Path, include_images: bool, cancel_event=None) -> Conve
 
                 if pi < len(pdf) - 1:
                     word.add_page_break()
+                _progress(progress_callback, min(94, page_base + page_span), f"Sayfa {pi + 1}/{total_pages} tamamlandı")
 
         pdf.close()
         if _cancelled(cancel_event):
             return _cancel_result(source, out, pages, imgs, ocr_pages)
+        _progress(progress_callback, 96, "Word dosyası kaydediliyor…")
         word.save(out)
+        _progress(progress_callback, 100, "Tamamlandı")
         return ConvertResult(source, out, pages, imgs, ocr_pages, False, 'Tamamlandı.')
     except Exception as exc:
         if _cancelled(cancel_event):
@@ -243,26 +267,30 @@ def _convert_pdf(source: Path, include_images: bool, cancel_event=None) -> Conve
         return ConvertResult(source, out, 0, 0, 0, True, f'Hata: {exc}')
 
 
-def _convert_image(source: Path, include_images: bool, cancel_event=None) -> ConvertResult:
+def _convert_image(source: Path, include_images: bool, cancel_event=None, progress_callback=None) -> ConvertResult:
     out = output_path_for_media(source)
     word = Document()
     _set_default_margins(word)
-
     try:
+        _progress(progress_callback, 2, "Görsel açılıyor…")
         if _cancelled(cancel_event):
             return _cancel_result(source, out)
         with Image.open(source) as im:
             image = ImageOps.exif_transpose(im).convert('RGB')
+        _progress(progress_callback, 8, "Görsel hazır")
         if _cancelled(cancel_event):
             return _cancel_result(source, out)
 
-        res = ocr_image(image, deskew=True, cancel_event=cancel_event)
+        def nested(v, msg):
+            _progress(progress_callback, 8 + 82 * (v / 100.0), msg)
+        res = ocr_image(image, deskew=True, cancel_event=cancel_event, progress_callback=nested)
         if res.cancelled or _cancelled(cancel_event):
             return _cancel_result(source, out, 1, 0, 0)
         _add_ocr_text(word, res.text)
 
         imgs = 0
         if include_images and not _cancelled(cancel_event):
+            _progress(progress_callback, 92, "Görsel Word'e ekleniyor…")
             with tempfile.TemporaryDirectory(prefix='gulsen_img_') as td:
                 p = Path(td) / 'source.jpg'
                 thumb = image.copy()
@@ -273,7 +301,9 @@ def _convert_image(source: Path, include_images: bool, cancel_event=None) -> Con
 
         if _cancelled(cancel_event):
             return _cancel_result(source, out, 1, imgs, 1)
+        _progress(progress_callback, 96, "Word dosyası kaydediliyor…")
         word.save(out)
+        _progress(progress_callback, 100, "Tamamlandı")
         return ConvertResult(source, out, 1, imgs, 1, False, 'Tamamlandı.')
     except Exception as exc:
         if _cancelled(cancel_event):
@@ -281,7 +311,7 @@ def _convert_image(source: Path, include_images: bool, cancel_event=None) -> Con
         return ConvertResult(source, out, 0, 0, 0, True, f'Hata: {exc}')
 
 
-def convert_media_to_word(source: os.PathLike | str, include_images: bool = False, cancel_event=None) -> ConvertResult:
+def convert_media_to_word(source: os.PathLike | str, include_images: bool = False, cancel_event=None, progress_callback=None) -> ConvertResult:
     source = Path(source).expanduser().resolve()
     if not source.exists():
         return ConvertResult(source, output_path_for_media(source), 0, 0, 0, True, 'Dosya bulunamadı.')
@@ -291,9 +321,9 @@ def convert_media_to_word(source: os.PathLike | str, include_images: bool = Fals
         return _cancel_result(source, output_path_for_media(source))
     suf = source.suffix.lower()
     if suf == '.pdf':
-        return _convert_pdf(source, include_images, cancel_event=cancel_event)
+        return _convert_pdf(source, include_images, cancel_event=cancel_event, progress_callback=progress_callback)
     if suf in SUPPORTED_IMAGE_EXTS:
-        return _convert_image(source, include_images, cancel_event=cancel_event)
+        return _convert_image(source, include_images, cancel_event=cancel_event, progress_callback=progress_callback)
     return ConvertResult(source, output_path_for_media(source), 0, 0, 0, True, 'Desteklenmeyen dosya türü.')
 
 
@@ -301,5 +331,5 @@ def collect_pdf_from_folder(folder, recursive=False):
     return [p for p in collect_media_from_folder(folder, recursive) if p.suffix.lower() == '.pdf']
 
 
-def convert_pdf_to_word(source, include_images=False, cancel_event=None):
-    return convert_media_to_word(source, include_images, cancel_event=cancel_event)
+def convert_pdf_to_word(source, include_images=False, cancel_event=None, progress_callback=None):
+    return convert_media_to_word(source, include_images, cancel_event=cancel_event, progress_callback=progress_callback)
