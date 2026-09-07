@@ -1,0 +1,230 @@
+name: Build and Release Gulsen Word Tools v0.2.8
+
+on:
+  push:
+    branches:
+      - gulsen-v026-build
+    paths:
+      - "gulsen-build/app/gulsen_word_tools_v028.py"
+      - ".github/workflows/gulsen-v028-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  APP_VERSION: "0.2.8"
+  RELEASE_TAG: "gulsen-v0.2.8"
+
+jobs:
+  windows:
+    name: Windows 10/11 x64 standalone responsive UI
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.11 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: "x64"
+          cache: "pip"
+          cache-dependency-path: gulsen-build/requirements.txt
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r gulsen-build/requirements.txt pyinstaller==6.16.0
+          choco install tesseract -y --no-progress
+          $tess = "$env:ProgramFiles\Tesseract-OCR"
+          New-Item -ItemType Directory -Force -Path "$tess\tessdata" | Out-Null
+          Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/tur.traineddata" -OutFile "$tess\tessdata\tur.traineddata"
+          Get-ChildItem "$tess\tessdata\*.traineddata" | Where-Object { $_.Name -notin @('tur.traineddata','eng.traineddata','osd.traineddata') } | Remove-Item -Force -ErrorAction SilentlyContinue
+      - name: Compile and OCR smoke tests
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = "${{ github.workspace }}\gulsen-build\app"
+          $env:GULSEN_TESSERACT_EXE = "$env:ProgramFiles\Tesseract-OCR\tesseract.exe"
+          $env:GULSEN_TESSDATA = "$env:ProgramFiles\Tesseract-OCR\tessdata"
+          python -m py_compile gulsen-build/app/gulsen_word_tools_v028.py gulsen-build/app/ocr_engine.py gulsen-build/app/pdf_to_word.py gulsen-build/app/updater.py
+          @'
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from PIL import Image, ImageDraw, ImageFont
+          from pdf_to_word import convert_media_to_word
+          from ocr_engine import ocr_image
+          src=Path('gulsen-build/app/gulsen_word_tools_v028.py').read_text(encoding='utf-8')
+          assert 'wait_window(' not in src
+          assert '.grab_set(' not in src
+          with TemporaryDirectory() as td:
+              root=Path(td)
+              img=Image.new('RGB',(1200,700),'white')
+              draw=ImageDraw.Draw(img)
+              font=ImageFont.truetype(r'C:\Windows\Fonts\arial.ttf',60)
+              draw.text((70,170),'Beyin dalgalari ve etkileri',fill='black',font=font)
+              ip=root/'scan.jpg'; img.rotate(2.0,expand=True,fillcolor='white').save(ip)
+              o=ocr_image(ip); assert 'Beyin' in o.text or 'beyin' in o.text, o.text
+              c=convert_media_to_word(ip,False); assert not c.skipped and c.output.exists(), c
+          print('Windows responsive UI + OCR testleri geçti.')
+          '@ | python -
+      - name: Build standalone EXE
+        shell: pwsh
+        run: |
+          $tess = "$env:ProgramFiles\Tesseract-OCR"
+          pyinstaller --noconfirm --clean --onefile --windowed `
+            --name "GulsenWordTools" `
+            --paths gulsen-build/app `
+            --collect-all pymupdf `
+            --collect-all tkinterdnd2 `
+            --add-data "$tess;tesseract" `
+            gulsen-build/app/gulsen_word_tools_v028.py
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item dist\GulsenWordTools.exe "out\GulsenWordTools_Windows10_11_x64_v0.2.8.exe"
+      - name: Verify executable stays responsive/alive
+        shell: pwsh
+        run: |
+          $exe=Resolve-Path "out\GulsenWordTools_Windows10_11_x64_v0.2.8.exe"
+          $bytes=[System.IO.File]::ReadAllBytes($exe)
+          if($bytes[0]-ne 0x4D -or $bytes[1]-ne 0x5A){throw 'PE/MZ değil'}
+          $p=Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 10
+          if($p.HasExited){throw "Uygulama erken kapandı: $($p.ExitCode)"}
+          Stop-Process -Id $p.Id -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gulsen-windows-v0.2.8
+          path: out/GulsenWordTools_Windows10_11_x64_v0.2.8.exe
+          compression-level: 0
+
+  macos:
+    name: macOS Apple Silicon standalone responsive UI
+    runs-on: macos-15
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "arm64"
+          brew install python@3.12 python-tk@3.12 tesseract dylibbundler
+          BASE="$(brew --prefix python@3.12)/bin/python3.12"
+          "$BASE" -m venv .venv
+          PY="$GITHUB_WORKSPACE/.venv/bin/python"
+          "$PY" -m pip install --upgrade pip
+          "$PY" -m pip install -r gulsen-build/requirements.txt pyinstaller==6.16.0
+          echo "PY=$PY" >> "$GITHUB_ENV"
+      - name: Create self-contained OCR bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ocr_bundle/lib ocr_bundle/tessdata
+          cp "$(which tesseract)" ocr_bundle/tesseract
+          chmod +x ocr_bundle/tesseract
+          TESS_PREFIX="$(brew --prefix tesseract)"
+          cp "$TESS_PREFIX/share/tessdata/eng.traineddata" ocr_bundle/tessdata/
+          cp "$TESS_PREFIX/share/tessdata/osd.traineddata" ocr_bundle/tessdata/
+          curl -L --fail --retry 3 "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/tur.traineddata" -o ocr_bundle/tessdata/tur.traineddata
+          dylibbundler -od -b -x ocr_bundle/tesseract -d ocr_bundle/lib -p @executable_path/lib/
+      - name: Compile and OCR smoke tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE/gulsen-build/app"
+          export GULSEN_TESSERACT_EXE="$GITHUB_WORKSPACE/ocr_bundle/tesseract"
+          export GULSEN_TESSDATA="$GITHUB_WORKSPACE/ocr_bundle/tessdata"
+          "$PY" -m py_compile gulsen-build/app/gulsen_word_tools_v028.py gulsen-build/app/ocr_engine.py gulsen-build/app/pdf_to_word.py gulsen-build/app/updater.py
+          "$PY" - <<'PY'
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from PIL import Image, ImageDraw, ImageFont
+          from pdf_to_word import convert_media_to_word
+          from ocr_engine import ocr_image
+          src=Path('gulsen-build/app/gulsen_word_tools_v028.py').read_text(encoding='utf-8')
+          assert 'wait_window(' not in src
+          assert '.grab_set(' not in src
+          with TemporaryDirectory() as td:
+              root=Path(td)
+              img=Image.new('RGB',(1200,700),'white')
+              draw=ImageDraw.Draw(img)
+              font=ImageFont.truetype('/System/Library/Fonts/Supplemental/Arial.ttf',60)
+              draw.text((70,170),'Beyin dalgalari ve etkileri',fill='black',font=font)
+              ip=root/'scan.jpg'; img.rotate(2.0,expand=True,fillcolor='white').save(ip)
+              o=ocr_image(ip); assert 'Beyin' in o.text or 'beyin' in o.text, o.text
+              c=convert_media_to_word(ip,False); assert not c.skipped and c.output.exists(), c
+          print('Mac responsive UI + OCR testleri geçti.')
+          PY
+      - name: Build arm64 APP
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$PY" -m PyInstaller --noconfirm --clean --windowed \
+            --name "GulsenWordTools" \
+            --paths gulsen-build/app \
+            --collect-all pymupdf \
+            --collect-all tkinterdnd2 \
+            --add-data "ocr_bundle:tesseract" \
+            gulsen-build/app/gulsen_word_tools_v028.py
+          mv "dist/GulsenWordTools.app" "dist/Gülşen'in Word Araçları.app"
+          APP="dist/Gülşen'in Word Araçları.app"
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --deep --strict "$APP"
+          file "$APP/Contents/MacOS/GulsenWordTools"
+      - name: Launch test and package
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="dist/Gülşen'in Word Araçları.app"
+          "$APP/Contents/MacOS/GulsenWordTools" >/tmp/gulsen_app.log 2>&1 &
+          PID=$!
+          sleep 10
+          if ! kill -0 "$PID" 2>/dev/null; then cat /tmp/gulsen_app.log; exit 1; fi
+          kill "$PID" || true
+          mkdir -p out
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "out/GulsenWordTools_Mac_AppleSilicon_v0.2.8.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gulsen-mac-v0.2.8
+          path: out/GulsenWordTools_Mac_AppleSilicon_v0.2.8.zip
+          compression-level: 0
+
+  release:
+    name: Publish v0.2.8 updater release
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: gulsen-*-v0.2.8
+          path: release-assets
+          merge-multiple: true
+      - name: Generate checksums
+        shell: bash
+        run: |
+          cd release-assets
+          sha256sum GulsenWordTools_Windows10_11_x64_v0.2.8.exe GulsenWordTools_Mac_AppleSilicon_v0.2.8.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Create updater release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: gulsen-v0.2.8
+          name: "Gülşen'in Word Araçları v0.2.8"
+          body: |
+            Mac arayüz donması düzeltmesi.
+
+            - işlem seçim penceresi artık bloklayan wait_window/grab_set kullanmıyor
+            - popup ana pencerenin merkezinde ve ekran sınırları içinde
+            - işlem penceresi tamamen non-blocking
+            - OCR arka planda çalışır, arayüz canlı kalır
+            - indeterminate ilerleme göstergesi işlem boyunca hareket eder
+            - İptal düğmesi OCR işlemini durdurur
+            - pencere kapatıldığında çalışan OCR iptal edilir
+            - Windows 10/11 x64 standalone
+            - macOS Apple Silicon standalone
+            - uygulama içi GitHub Release güncelleyici
+          files: |
+            release-assets/GulsenWordTools_Windows10_11_x64_v0.2.8.exe
+            release-assets/GulsenWordTools_Mac_AppleSilicon_v0.2.8.zip
+            release-assets/SHA256SUMS.txt
+          fail_on_unmatched_files: true
+          make_latest: false
