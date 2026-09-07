@@ -1,0 +1,199 @@
+name: Build and Release Gulsen Word Tools v0.2.10
+
+on:
+  push:
+    branches:
+      - gulsen-v026-build
+    paths:
+      - "gulsen-build/app/gulsen_word_tools_v030.py"
+      - "gulsen-build/app/updater.py"
+      - ".github/workflows/gulsen-v030-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Windows 10/11 x64 Unicode-safe updater build
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.11 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: "x64"
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r gulsen-build/requirements.txt pyinstaller==6.16.0
+          choco install tesseract -y --no-progress
+          $tess = "$env:ProgramFiles\Tesseract-OCR"
+          New-Item -ItemType Directory -Force -Path "$tess\tessdata" | Out-Null
+          Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/tur.traineddata" -OutFile "$tess\tessdata\tur.traineddata"
+          Get-ChildItem "$tess\tessdata\*.traineddata" | Where-Object { $_.Name -notin @('tur.traineddata','eng.traineddata','osd.traineddata') } | Remove-Item -Force -ErrorAction SilentlyContinue
+      - name: Compile and updater Unicode test
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = "${{ github.workspace }}\gulsen-build\app"
+          python -m py_compile gulsen-build/app/gulsen_word_tools_v030.py gulsen-build/app/gulsen_word_tools_v029.py gulsen-build/app/updater.py gulsen-build/app/ocr_engine.py gulsen-build/app/pdf_to_word.py
+          @'
+          import base64
+          from pathlib import Path
+          import gulsen_word_tools_v030
+          import gulsen_word_tools_v029 as baseapp
+          from updater import _windows_updater_script, _encode_powershell
+          assert baseapp.APP_VERSION == '0.2.10'
+          asset = Path(r'C:\Users\USER\AppData\Local\Temp\gulsen_update\GulsenWordTools_Windows10_11_x64_v0.2.10.exe')
+          current = Path(r'C:\Users\USER\OneDrive\MASAÜSTÜ\Gülşen Word Araçları.exe')
+          script = _windows_updater_script(asset, current)
+          encoded = _encode_powershell(script)
+          decoded = base64.b64decode(encoded).decode('utf-16le')
+          assert decoded == script
+          assert 'MASAÜSTÜ' in decoded and 'Gülşen' in decoded
+          src = Path('gulsen-build/app/updater.py').read_text(encoding='utf-8')
+          assert 'cmd.exe' not in src
+          assert 'gulsen_update.cmd' not in src
+          assert 'CREATE_NO_WINDOW' in src
+          print('Unicode-safe hidden updater test passed.')
+          '@ | python -
+      - name: Build Windows standalone update asset
+        shell: pwsh
+        run: |
+          $tess = "$env:ProgramFiles\Tesseract-OCR"
+          pyinstaller --noconfirm --clean --onefile --windowed `
+            --name "GulsenWordTools" `
+            --paths gulsen-build/app `
+            --collect-all pymupdf `
+            --collect-all tkinterdnd2 `
+            --add-data "$tess;tesseract" `
+            gulsen-build/app/gulsen_word_tools_v030.py
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item dist\GulsenWordTools.exe "out\GulsenWordTools_Windows10_11_x64_v0.2.10.exe"
+      - name: Launch test
+        shell: pwsh
+        run: |
+          $exe=Resolve-Path "out\GulsenWordTools_Windows10_11_x64_v0.2.10.exe"
+          $p=Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 10
+          if($p.HasExited){throw "Uygulama erken kapandı: $($p.ExitCode)"}
+          Stop-Process -Id $p.Id -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gulsen-windows-v0.2.10
+          path: out/GulsenWordTools_Windows10_11_x64_v0.2.10.exe
+          compression-level: 0
+
+  macos:
+    name: macOS Apple Silicon update build
+    runs-on: macos-15
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "arm64"
+          brew install python@3.12 python-tk@3.12 tesseract dylibbundler
+          BASE="$(brew --prefix python@3.12)/bin/python3.12"
+          "$BASE" -m venv .venv
+          PY="$GITHUB_WORKSPACE/.venv/bin/python"
+          "$PY" -m pip install --upgrade pip
+          "$PY" -m pip install -r gulsen-build/requirements.txt pyinstaller==6.16.0
+          echo "PY=$PY" >> "$GITHUB_ENV"
+      - name: Create self-contained OCR bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ocr_bundle/lib ocr_bundle/tessdata
+          cp "$(which tesseract)" ocr_bundle/tesseract
+          chmod +x ocr_bundle/tesseract
+          TESS_PREFIX="$(brew --prefix tesseract)"
+          cp "$TESS_PREFIX/share/tessdata/eng.traineddata" ocr_bundle/tessdata/
+          cp "$TESS_PREFIX/share/tessdata/osd.traineddata" ocr_bundle/tessdata/
+          curl -L --fail --retry 3 "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/tur.traineddata" -o ocr_bundle/tessdata/tur.traineddata
+          dylibbundler -od -b -x ocr_bundle/tesseract -d ocr_bundle/lib -p @executable_path/lib/
+      - name: Compile version and updater test
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE/gulsen-build/app"
+          "$PY" -m py_compile gulsen-build/app/gulsen_word_tools_v030.py gulsen-build/app/gulsen_word_tools_v029.py gulsen-build/app/updater.py gulsen-build/app/ocr_engine.py gulsen-build/app/pdf_to_word.py
+          "$PY" - <<'PY'
+          import gulsen_word_tools_v030
+          import gulsen_word_tools_v029 as baseapp
+          assert baseapp.APP_VERSION == '0.2.10'
+          print('Mac v0.2.10 source test passed.')
+          PY
+      - name: Build arm64 APP update asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$PY" -m PyInstaller --noconfirm --clean --windowed \
+            --name "GulsenWordTools" \
+            --paths gulsen-build/app \
+            --collect-all pymupdf \
+            --collect-all tkinterdnd2 \
+            --add-data "ocr_bundle:tesseract" \
+            gulsen-build/app/gulsen_word_tools_v030.py
+          mv "dist/GulsenWordTools.app" "dist/Gülşen'in Word Araçları.app"
+          APP="dist/Gülşen'in Word Araçları.app"
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --deep --strict "$APP"
+      - name: Launch test and package
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="dist/Gülşen'in Word Araçları.app"
+          "$APP/Contents/MacOS/GulsenWordTools" >/tmp/gulsen_app.log 2>&1 &
+          PID=$!
+          sleep 10
+          if ! kill -0 "$PID" 2>/dev/null; then cat /tmp/gulsen_app.log; exit 1; fi
+          kill "$PID" || true
+          mkdir -p out
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "out/GulsenWordTools_Mac_AppleSilicon_v0.2.10.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gulsen-mac-v0.2.10
+          path: out/GulsenWordTools_Mac_AppleSilicon_v0.2.10.zip
+          compression-level: 0
+
+  release:
+    name: Publish v0.2.10 updater fix
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: gulsen-*-v0.2.10
+          path: release-assets
+          merge-multiple: true
+      - name: Generate checksums
+        shell: bash
+        run: |
+          cd release-assets
+          sha256sum GulsenWordTools_Windows10_11_x64_v0.2.10.exe GulsenWordTools_Mac_AppleSilicon_v0.2.10.zip > SHA256SUMS.txt
+      - name: Create updater release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: gulsen-v0.2.10
+          name: "Gülşen'in Word Araçları v0.2.10"
+          body: |
+            Windows otomatik güncelleme düzeltmesi.
+
+            - Windows güncelleyicide CMD/batch tamamen kaldırıldı
+            - Türkçe/Unicode klasör adları güvenli işlendi (ör. Masaüstü, Gülşen)
+            - güncelleme yardımcı işlemi görünmez PowerShell EncodedCommand ile çalışır
+            - siyah terminal pencereleri açılmaz
+            - eski EXE değiştirildikten sonra yeni sürüm tek kez başlatılır
+            - v0.2.9 özellikleri korunur: otomatik başlat, gerçek yüzde, işlem bitince listeden kaldırma, Listeyi Temizle
+          files: |
+            release-assets/GulsenWordTools_Windows10_11_x64_v0.2.10.exe
+            release-assets/GulsenWordTools_Mac_AppleSilicon_v0.2.10.zip
+            release-assets/SHA256SUMS.txt
+          fail_on_unmatched_files: true
+          make_latest: false
