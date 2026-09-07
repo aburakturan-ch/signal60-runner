@@ -67,13 +67,13 @@ jobs:
           from ocr_engine import ocr_image
           with TemporaryDirectory() as td:
               root=Path(td)
-              d=Document(); d.add_paragraph("Bu cümle burada"); d.add_paragraph("devam ediyor."); src=root/"ornek.docx"; d.save(src)
-              rr=repair_file(src); assert not rr.skipped and rr.repaired_breaks>=1
+              d=Document(); d.add_paragraph("Bu cümle kopyalama hatası yüzünden burada devam etmesi gerekirken"); d.add_paragraph("alt satırda devam etmektedir."); src=root/"ornek.docx"; d.save(src)
+              rr=repair_file(src); assert not rr.skipped and rr.repaired_breaks>=1, (rr.repaired_breaks, rr.message)
               img=Image.new('RGB',(1400,800),'white'); draw=ImageDraw.Draw(img); font=ImageFont.truetype(r'C:\Windows\Fonts\arial.ttf',70); draw.text((80,180),'Beyin dalgalari ve etkileri',fill='black',font=font); ip=root/'scan.jpg'; img.rotate(2.5,expand=True,fillcolor='white').save(ip)
-              o=ocr_image(ip); assert 'Beyin' in o.text or 'beyin' in o.text
-              ci=convert_media_to_word(ip,False); assert not ci.skipped and ci.output.exists() and ci.ocr_pages==1
+              o=ocr_image(ip); print('OCR:',repr(o.text)); assert 'Beyin' in o.text or 'beyin' in o.text, o.text
+              ci=convert_media_to_word(ip,False); assert not ci.skipped and ci.output.exists() and ci.ocr_pages==1, ci
               pdf=fitz.open(); page=pdf.new_page(); page.insert_text((72,72),'PDF metin aktarimi',fontsize=14); pp=root/'ornek.pdf'; pdf.save(pp); pdf.close()
-              cp=convert_media_to_word(pp,False); assert not cp.skipped and cp.output.exists()
+              cp=convert_media_to_word(pp,False); assert not cp.skipped and cp.output.exists(), cp
           print('Windows motor ve OCR testleri geçti.')
           '@ | python -
 
@@ -171,11 +171,11 @@ jobs:
           from ocr_engine import ocr_image
           with TemporaryDirectory() as td:
               root=Path(td)
-              d=Document(); d.add_paragraph('Bu cümle burada'); d.add_paragraph('devam ediyor.'); src=root/'ornek.docx'; d.save(src)
-              rr=repair_file(src); assert not rr.skipped and rr.repaired_breaks>=1
+              d=Document(); d.add_paragraph('Bu cümle kopyalama hatası yüzünden burada devam etmesi gerekirken'); d.add_paragraph('alt satırda devam etmektedir.'); src=root/'ornek.docx'; d.save(src)
+              rr=repair_file(src); assert not rr.skipped and rr.repaired_breaks>=1, (rr.repaired_breaks,rr.message)
               img=Image.new('RGB',(1400,800),'white'); draw=ImageDraw.Draw(img); font=ImageFont.truetype('/System/Library/Fonts/Supplemental/Arial.ttf',70); draw.text((80,180),'Beyin dalgalari ve etkileri',fill='black',font=font); ip=root/'scan.jpg'; img.rotate(2.5,expand=True,fillcolor='white').save(ip)
-              o=ocr_image(ip); assert 'Beyin' in o.text or 'beyin' in o.text
-              ci=convert_media_to_word(ip,False); assert not ci.skipped and ci.output.exists()
+              o=ocr_image(ip); print('OCR:',repr(o.text)); assert 'Beyin' in o.text or 'beyin' in o.text, o.text
+              ci=convert_media_to_word(ip,False); assert not ci.skipped and ci.output.exists(), ci
           print('Mac motor ve OCR testleri geçti.')
           PY
 
