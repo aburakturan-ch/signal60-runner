@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import io
 import os
 import re
+import tempfile
 from dataclasses import dataclass
-from io import BytesIO
 from pathlib import Path
 from typing import List
 
@@ -11,172 +12,194 @@ import pymupdf as fitz
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt, RGBColor
+from PIL import Image, ImageOps
 
+from ocr_engine import ocr_image
+
+SUPPORTED_IMAGE_EXTS={'.png','.jpg','.jpeg','.tif','.tiff','.bmp','.webp'}
 
 @dataclass
-class PdfConversionResult:
+class ConvertResult:
     source: Path
     output: Path
-    pages: int = 0
-    paragraphs: int = 0
-    images: int = 0
-    skipped: bool = False
-    message: str = ""
-    warning: str = ""
+    pages: int
+    images: int
+    ocr_pages: int = 0
+    skipped: bool=False
+    message: str=''
 
 
-def output_path_for(source: Path) -> Path:
+def output_path_for_media(source: Path)->Path:
     return source.with_name(f"{source.stem}_Aktarma.docx")
 
 
-def collect_pdf_from_folder(folder: os.PathLike | str, recursive: bool = False) -> List[Path]:
-    folder = Path(folder).expanduser().resolve()
-    pattern = "**/*.pdf" if recursive else "*.pdf"
-    return sorted([p for p in folder.glob(pattern) if p.is_file()], key=lambda p: str(p).lower())
+def collect_media_from_folder(folder: os.PathLike|str, recursive: bool=False) -> List[Path]:
+    folder=Path(folder).expanduser().resolve(); out=[]
+    it=folder.rglob('*') if recursive else folder.glob('*')
+    for p in it:
+        if not p.is_file() or p.name.startswith('~$'): continue
+        suf=p.suffix.lower()
+        if suf=='.pdf' or suf in SUPPORTED_IMAGE_EXTS:
+            out.append(p)
+    return sorted(out,key=lambda p: str(p).lower())
 
 
-def _font_name(raw: str) -> str:
-    name = (raw or "Times New Roman").split("+")[-1]
-    name = re.sub(r"[-, ](?:BoldItalic|BoldOblique|Bold|Italic|Oblique|Regular|Medium|Light|SemiBold|Black|Book)$", "", name, flags=re.I)
-    aliases = {
-        "TimesNewRomanPSMT": "Times New Roman",
-        "TimesNewRoman": "Times New Roman",
-        "ArialMT": "Arial",
-        "Helvetica": "Arial",
-        "Calibri": "Calibri",
-        "Cambria": "Cambria",
-        "Georgia": "Georgia",
-        "Garamond": "Garamond",
-    }
-    compact = re.sub(r"[^A-Za-z0-9]", "", name)
-    return aliases.get(compact, name.strip() or "Times New Roman")
+def _set_default_margins(doc: Document):
+    sec=doc.sections[0]
+    sec.top_margin=Inches(0.75); sec.bottom_margin=Inches(0.75); sec.left_margin=Inches(0.82); sec.right_margin=Inches(0.82)
 
 
-def _is_bold(span: dict) -> bool:
-    f = (span.get("font") or "").lower()
-    return bool(span.get("flags", 0) & fitz.TEXT_FONT_BOLD) or "bold" in f
+def _apply_style(run, span):
+    size=span.get('size')
+    if size:
+        run.font.size=Pt(max(8,min(18,float(size))))
+    flags=int(span.get('flags',0) or 0)
+    run.font.italic=bool(flags & 2)
+    run.font.bold=bool(flags & 16)
+    color=span.get('color')
+    if isinstance(color,int):
+        run.font.color.rgb=RGBColor((color>>16)&255,(color>>8)&255,color&255)
 
 
-def _is_italic(span: dict) -> bool:
-    f = (span.get("font") or "").lower()
-    return bool(span.get("flags", 0) & fitz.TEXT_FONT_ITALIC) or "italic" in f or "oblique" in f
-
-
-def _rgb(value: int) -> RGBColor:
-    return RGBColor((value >> 16) & 255, (value >> 8) & 255, value & 255)
-
-
-def _line_text(line: dict) -> str:
-    return "".join(s.get("text", "") for s in line.get("spans", [])).strip()
-
-
-def _alignment(line: dict, page_width: float):
-    bbox = line.get("bbox", (0, 0, 0, 0))
-    left, right = bbox[0], bbox[2]
-    width = max(1.0, right - left)
-    left_gap = left
-    right_gap = page_width - right
-    if width < page_width * 0.72 and abs(left_gap - right_gap) < page_width * 0.08:
-        return WD_ALIGN_PARAGRAPH.CENTER
-    if left_gap > page_width * 0.45 and width < page_width * 0.5:
-        return WD_ALIGN_PARAGRAPH.RIGHT
+def _block_alignment(block, page_width):
+    bbox=block.get('bbox',[0,0,page_width,0]); x0,x1=bbox[0],bbox[2]
+    left=x0/page_width; right=(page_width-x1)/page_width
+    if left>0.22 and right>0.22: return WD_ALIGN_PARAGRAPH.CENTER
+    if left>0.55 and right<0.13: return WD_ALIGN_PARAGRAPH.RIGHT
     return WD_ALIGN_PARAGRAPH.LEFT
 
 
-def _add_line(doc: Document, line: dict, page_width: float) -> bool:
-    if not _line_text(line):
-        return False
-    p = doc.add_paragraph()
-    p.alignment = _alignment(line, page_width)
-    p.paragraph_format.space_after = Pt(0)
-    p.paragraph_format.space_before = Pt(0)
-    for span in line.get("spans", []):
-        text = span.get("text", "")
-        if not text:
-            continue
-        run = p.add_run(text)
-        run.bold = _is_bold(span)
-        run.italic = _is_italic(span)
-        run.font.name = _font_name(span.get("font", ""))
-        size = float(span.get("size", 11) or 11)
-        if 4 <= size <= 72:
-            run.font.size = Pt(size)
-        run.font.color.rgb = _rgb(int(span.get("color", 0) or 0))
-    return True
+def _add_text_block(word: Document, block, page_width):
+    lines=[]
+    for line in block.get('lines',[]):
+        spans=[s for s in line.get('spans',[]) if s.get('text','').strip()]
+        if spans: lines.append(spans)
+    if not lines: return False
+    p=word.add_paragraph(); p.alignment=_block_alignment(block,page_width)
+    for li,line in enumerate(lines):
+        if li: p.add_run(' ')
+        prev=''
+        for span in line:
+            text=re.sub(r'\s+',' ',span.get('text','')).strip()
+            if not text: continue
+            if prev and not prev.endswith((' ','-','—','/','(')) and not text.startswith(('.',',',';',':','!','?',')','”','"')):
+                p.add_run(' ')
+            r=p.add_run(text); _apply_style(r,span); prev=text
+    return bool(p.text.strip())
 
 
-def _insert_images(doc: Document, page, page_width_inches: float) -> int:
-    added = 0
-    seen = set()
-    for info in page.get_images(full=True):
-        xref = info[0]
-        if xref in seen:
-            continue
-        seen.add(xref)
-        try:
-            pix = fitz.Pixmap(page.parent, xref)
-            if pix.width < 40 or pix.height < 40:
-                continue
-            if pix.alpha or pix.n > 4:
-                pix = fitz.Pixmap(fitz.csRGB, pix)
-            data = pix.tobytes("png")
-            width = min(page_width_inches * 0.85, max(1.2, pix.width / 110.0))
-            p = doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            p.add_run().add_picture(BytesIO(data), width=Inches(width))
-            added += 1
-        except Exception:
-            continue
-    return added
-
-
-def convert_pdf_to_word(source: os.PathLike | str, include_images: bool = False) -> PdfConversionResult:
-    source = Path(source).expanduser().resolve()
-    output = output_path_for(source)
-    if not source.exists() or source.suffix.lower() != ".pdf":
-        return PdfConversionResult(source, output, skipped=True, message="PDF bulunamadı veya desteklenmiyor.")
-
-    pdf = None
+def _save_block_image(block, tmpdir: Path) -> Path | None:
+    data=block.get('image')
+    if not data: return None
+    ext=block.get('ext','png')
+    path=tmpdir/f"image_{abs(hash(block.get('bbox',())))}.{ext}"
     try:
-        pdf = fitz.open(source)
-        doc = Document()
-        section = doc.sections[0]
-        section.top_margin = Inches(0.65)
-        section.bottom_margin = Inches(0.65)
-        section.left_margin = Inches(0.7)
-        section.right_margin = Inches(0.7)
+        path.write_bytes(data); return path
+    except Exception:
+        return None
 
-        paragraphs = 0
-        images = 0
-        text_chars = 0
-        for page_index, page in enumerate(pdf):
-            data = page.get_text("dict", flags=fitz.TEXTFLAGS_TEXT)
-            lines = []
-            for block in data.get("blocks", []):
-                if block.get("type") != 0:
-                    continue
-                for line in block.get("lines", []):
-                    txt = _line_text(line)
-                    if txt:
-                        lines.append((line.get("bbox", (0, 0, 0, 0))[1], line.get("bbox", (0, 0, 0, 0))[0], line))
-                        text_chars += len(txt)
-            lines.sort(key=lambda item: (round(item[0], 1), item[1]))
-            for _, __, line in lines:
-                if _add_line(doc, line, page.rect.width):
-                    paragraphs += 1
-            if include_images:
-                usable_width = (section.page_width - section.left_margin - section.right_margin) / 914400
-                images += _insert_images(doc, page, usable_width)
-            if page_index < len(pdf) - 1:
-                doc.add_page_break()
 
-        warning = ""
-        if text_chars < max(40, len(pdf) * 15):
-            warning = "PDF'de yeterli metin katmanı bulunamadı. Bu dosya taranmış görüntü olabilir; OCR uygulanmadı."
-        doc.save(output)
-        return PdfConversionResult(source, output, pages=len(pdf), paragraphs=paragraphs, images=images, message="Tamamlandı.", warning=warning)
+def _add_picture_safe(word: Document, path: Path, width=5.8):
+    try:
+        word.add_picture(str(path), width=Inches(width)); return True
+    except Exception:
+        try:
+            with Image.open(path) as im:
+                im=ImageOps.exif_transpose(im).convert('RGB')
+                tmp=path.with_suffix('.normalized.jpg'); im.save(tmp,'JPEG',quality=92)
+            word.add_picture(str(tmp), width=Inches(width))
+            try: tmp.unlink()
+            except: pass
+            return True
+        except Exception:
+            return False
+
+
+def _add_ocr_text(word: Document, text: str):
+    text=text.strip()
+    if not text:
+        word.add_paragraph('[OCR ile okunabilir metin bulunamadı]'); return
+    for para in re.split(r'\n\s*\n',text):
+        para=re.sub(r'[ \t]+',' ',para).strip()
+        if para:
+            word.add_paragraph(para)
+
+
+def _render_page_image(page) -> Image.Image:
+    mat=fitz.Matrix(2.8,2.8)
+    pix=page.get_pixmap(matrix=mat, alpha=False)
+    return Image.open(io.BytesIO(pix.tobytes('png'))).convert('RGB')
+
+
+def _page_has_useful_text(page) -> bool:
+    text=re.sub(r'\s+',' ',page.get_text('text') or '').strip()
+    return len(text)>=35 and sum(ch.isalpha() for ch in text)>=15
+
+
+def _convert_pdf(source: Path, include_images: bool) -> ConvertResult:
+    out=output_path_for_media(source); word=Document(); _set_default_margins(word)
+    pages=imgs=ocr_pages=0
+    try:
+        pdf=fitz.open(source)
+        with tempfile.TemporaryDirectory(prefix='gulsen_pdf_') as td:
+            tmpdir=Path(td)
+            for pi,page in enumerate(pdf):
+                pages+=1
+                if _page_has_useful_text(page):
+                    pdata=page.get_text('dict', flags=11)
+                    blocks=sorted(pdata.get('blocks',[]), key=lambda b:(round(b.get('bbox',[0,0,0,0])[1],1),round(b.get('bbox',[0,0,0,0])[0],1)))
+                    any_text=False
+                    for block in blocks:
+                        typ=block.get('type',0)
+                        if typ==0:
+                            any_text=_add_text_block(word,block,page.rect.width) or any_text
+                        elif typ==1 and include_images:
+                            pth=_save_block_image(block,tmpdir)
+                            if pth and _add_picture_safe(word,pth): imgs+=1
+                    if not any_text:
+                        image=_render_page_image(page); res=ocr_image(image); _add_ocr_text(word,res.text); ocr_pages+=1
+                else:
+                    image=_render_page_image(page); res=ocr_image(image); _add_ocr_text(word,res.text); ocr_pages+=1
+                    if include_images:
+                        pth=tmpdir/f'page_{pi+1}.jpg'; image.save(pth,'JPEG',quality=88)
+                        if _add_picture_safe(word,pth): imgs+=1
+                if pi<len(pdf)-1: word.add_page_break()
+        pdf.close(); word.save(out)
+        return ConvertResult(source,out,pages,imgs,ocr_pages,False,'Tamamlandı.')
     except Exception as exc:
-        return PdfConversionResult(source, output, skipped=True, message=f"Hata: {exc}")
-    finally:
-        if pdf is not None:
-            pdf.close()
+        return ConvertResult(source,out,0,0,0,True,f'Hata: {exc}')
+
+
+def _convert_image(source: Path, include_images: bool) -> ConvertResult:
+    out=output_path_for_media(source); word=Document(); _set_default_margins(word)
+    try:
+        with Image.open(source) as im:
+            image=ImageOps.exif_transpose(im).convert('RGB')
+        res=ocr_image(image, deskew=True)
+        _add_ocr_text(word,res.text)
+        imgs=0
+        if include_images:
+            with tempfile.TemporaryDirectory(prefix='gulsen_img_') as td:
+                p=Path(td)/'source.jpg'; image.save(p,'JPEG',quality=90)
+                if _add_picture_safe(word,p): imgs=1
+        word.save(out)
+        return ConvertResult(source,out,1,imgs,1,False,'Tamamlandı.')
+    except Exception as exc:
+        return ConvertResult(source,out,0,0,0,True,f'Hata: {exc}')
+
+
+def convert_media_to_word(source: os.PathLike|str, include_images: bool=False) -> ConvertResult:
+    source=Path(source).expanduser().resolve()
+    if not source.exists(): return ConvertResult(source,output_path_for_media(source),0,0,0,True,'Dosya bulunamadı.')
+    if source.stem.endswith('_Aktarma'): return ConvertResult(source,output_path_for_media(source),0,0,0,True,'Bu dosya zaten _Aktarma çıktısı gibi görünüyor.')
+    suf=source.suffix.lower()
+    if suf=='.pdf': return _convert_pdf(source,include_images)
+    if suf in SUPPORTED_IMAGE_EXTS: return _convert_image(source,include_images)
+    return ConvertResult(source,output_path_for_media(source),0,0,0,True,'Desteklenmeyen dosya türü.')
+
+
+def collect_pdf_from_folder(folder, recursive=False):
+    return [p for p in collect_media_from_folder(folder,recursive) if p.suffix.lower()=='.pdf']
+
+def convert_pdf_to_word(source, include_images=False):
+    return convert_media_to_word(source,include_images)
