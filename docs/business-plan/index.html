@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#101214">
+<title>Business Plan — Control Panel</title>
+<style>
+:root{--bg:#0d0f11;--panel:#15181b;--panel2:#1b1f23;--line:#2b3137;--text:#f2f4f5;--muted:#9aa3aa;--accent:#f1f3f4;--warn:#f6c85f;--danger:#ff7b72;--ok:#68d391;--blue:#79b8ff}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{min-height:100vh}
+button,input,select,textarea{font:inherit}.wrap{max-width:980px;margin:0 auto;padding:14px 14px 100px}
+header{position:sticky;top:0;z-index:10;background:rgba(13,15,17,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.header-in{max-width:980px;margin:auto;padding:12px 14px;display:flex;align-items:center;gap:10px}.brand{font-weight:800;letter-spacing:.02em;flex:1}.sub{font-size:12px;color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:9px 11px;border-radius:9px;cursor:pointer}.btn:active{transform:translateY(1px)}.btn.small{font-size:12px;padding:7px 9px}.btn.primary{background:var(--text);color:#111;border-color:var(--text);font-weight:700}
+.grid{display:grid;gap:12px}.grid.metrics{grid-template-columns:repeat(4,minmax(0,1fr));margin:14px 0}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}.metric .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.metric .v{font-size:23px;font-weight:800;margin-top:5px}.metric .v.warn{color:var(--warn)}
+h2{font-size:16px;margin:0 0 11px}h3{font-size:13px;margin:0 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.section{margin-top:14px}
+.progress{height:8px;background:#24292e;border-radius:999px;overflow:hidden}.progress>i{display:block;height:100%;background:var(--accent);width:0}.row{display:flex;gap:10px;align-items:flex-start}.grow{flex:1}
+.task{display:flex;gap:11px;padding:11px 0;border-top:1px solid var(--line)}.task:first-child{border-top:0}.task input[type=checkbox]{width:20px;height:20px;margin-top:1px;accent-color:#e7e9ea}.task.done .title{text-decoration:line-through;color:#777}.title{font-weight:650;line-height:1.3}.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}.pill{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:3px 7px;color:var(--muted)}.pill.high{color:var(--danger);border-color:#6d3230}.pill.now{color:var(--warn);border-color:#67562a}.pill.money{color:var(--ok);border-color:#2c5d3c}.pill.deadline{color:var(--blue);border-color:#33577a}
+.note{font-size:13px;line-height:1.45;color:var(--muted)}.deadlinebox{display:flex;gap:12px;align-items:center}.count{font-size:34px;font-weight:900;line-height:1}.countlabel{font-size:11px;color:var(--muted);text-transform:uppercase}
+.tabs{display:flex;gap:7px;overflow:auto;padding-bottom:4px;margin:12px 0}.tab{white-space:nowrap;border:1px solid var(--line);background:transparent;color:var(--muted);padding:8px 10px;border-radius:999px;cursor:pointer}.tab.active{background:var(--text);color:#111;border-color:var(--text)}
+.daily-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tip{background:var(--panel2);border-radius:10px;padding:11px}.tip b{display:block;font-size:12px;margin-bottom:5px}.tip span{font-size:13px;line-height:1.4;color:#d7dadd}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}.add{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}.add input{background:#0f1214;border:1px solid var(--line);color:var(--text);padding:10px;border-radius:9px;min-width:0}
+details{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}summary{cursor:pointer;color:var(--muted)}
+.footer{color:#6f777d;font-size:11px;margin-top:18px;line-height:1.5}
+@media(max-width:700px){.grid.metrics{grid-template-columns:1fr 1fr}.daily-grid{grid-template-columns:1fr}.header-in{align-items:center}.brand{font-size:14px}.sub{display:none}.wrap{padding:10px 10px 100px}.card{border-radius:12px;padding:12px}.metric .v{font-size:20px}}
+</style>
+</head>
+<body>
+<header><div class="header-in">
+  <div class="grow"><div class="brand">BUSINESS PLAN / CONTROL PANEL</div><div class="sub" id="dateLine"></div></div>
+  <button class="btn small" id="langBtn">UA</button>
+  <button class="btn small" id="exportBtn">Export</button>
+</div></header>
+<div class="wrap">
+  <div class="grid metrics">
+    <div class="card metric"><div class="k" data-i="deadline">KAYSER deadline</div><div class="v warn" id="daysLeft">—</div></div>
+    <div class="card metric"><div class="k" data-i="progress">Progress</div><div class="v" id="pct">0%</div></div>
+    <div class="card metric"><div class="k" data-i="open">Open tasks</div><div class="v" id="openCount">0</div></div>
+    <div class="card metric"><div class="k" data-i="focus">Today's focus</div><div class="v" id="focusCount">5</div></div>
+  </div>
+
+  <section class="card section">
+    <div class="deadlinebox">
+      <div><div class="count" id="countBig">—</div><div class="countlabel" data-i="days">days</div></div>
+      <div class="grow"><h2 data-i="kayserTitle">KAYSER → Netflix / Sıradaki Hikâye</h2><div class="note" data-i="kayserNote">Senaryolaştırma, başvuru paketi ve final gönderim 30 Eylül 2026'dan önce tamamlanmalı.</div></div>
+    </div>
+  </section>
+
+  <section class="card section">
+    <h2 data-i="today">Bugünün Öncelikleri</h2>
+    <div class="progress"><i id="focusProgress"></i></div>
+    <div id="focusTasks"></div>
+  </section>
+
+  <section class="card section">
+    <h2 data-i="marketing">Günlük Yayınevi Marketing</h2>
+    <div class="daily-grid" id="marketingGrid"></div>
+    <div id="marketingChecks"></div>
+  </section>
+
+  <section class="card section">
+    <div class="row"><div class="grow"><h2 data-i="roadmap">Tüm İşler</h2></div><button class="btn small" id="showDoneBtn" data-i="showDone">Tamamlananları göster</button></div>
+    <div class="tabs" id="tabs"></div>
+    <div id="taskList"></div>
+    <div class="add"><input id="newTask" data-ph="addTask" placeholder="Yeni iş ekle…"><button class="btn primary" id="addTaskBtn" data-i="add">Ekle</button></div>
+  </section>
+
+  <section class="card section">
+    <h2 data-i="sync">Durum / Yedek</h2>
+    <div class="note" data-i="localMode">Bu ilk sürümde checkbox durumu bu cihazın tarayıcısında saklanır. Sayfa internette çalışır; fakat iki farklı telefon arasında durum henüz otomatik senkronize olmaz.</div>
+    <div class="toolbar" style="margin-top:10px">
+      <button class="btn small" id="importBtn" data-i="import">JSON içe aktar</button>
+      <button class="btn small" id="resetBtn" data-i="reset">Yerel durumu sıfırla</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json" hidden>
+  </section>
+
+  <div class="footer" data-i="privacy">Not: Bu sayfa public GitHub Pages üzerinde çalıştığı için e-posta adresleri ve ayrıntılı finansal tutarlar kaynak koda eklenmedi. Hassas ayrıntılar günlük e-posta/Business Plan takibinde kalır.</div>
+</div>
+
+<script>
+const DEADLINE = new Date('2026-09-30T23:59:59+03:00');
+const LS='abtp_business_dashboard_v1';
+const todayKey=()=>new Date().toISOString().slice(0,10);
+const tr={
+deadline:'KAYSER deadline',progress:'İlerleme',open:'Açık işler',focus:"Bugünün odağı",days:'gün',
+kayserTitle:'KAYSER → Netflix / Sıradaki Hikâye',
+kayserNote:"Senaryolaştırma, başvuru paketi ve final gönderim 30 Eylül 2026'dan önce tamamlanmalı.",
+today:"Bugünün Öncelikleri",marketing:'Günlük Yayınevi Marketing',roadmap:'Tüm İşler',
+showDone:'Tamamlananları göster',hideDone:'Tamamlananları gizle',add:'Ekle',addTask:'Yeni iş ekle…',
+sync:'Durum / Yedek',localMode:'Bu ilk sürümde checkbox durumu bu cihazın tarayıcısında saklanır. Sayfa internette çalışır; fakat iki farklı telefon arasında durum henüz otomatik senkronize olmaz.',
+import:'JSON içe aktar',reset:'Yerel durumu sıfırla',
+privacy:'Not: Bu sayfa public GitHub Pages üzerinde çalıştığı için e-posta adresleri ve ayrıntılı finansal tutarlar kaynak koda eklenmedi. Hassas ayrıntılar günlük e-posta/Business Plan takibinde kalır.',
+all:'Tümü',publisher:'Şirket / Yayınevi',kayser:'KAYSER',zifir:'ZİFİR',books:'Kitaplar',marketingTab:'Marketing',apps:'Uygulamalar',career:'BKM / Gelir',backlog:'Backlog',
+high:'yüksek',medium:'orta',low:'düşük',due:'Son tarih',money:'gelir',monthly:'aylık',
+doneToday:'Bugün tamamlandı',delete:'Sil'
+};
+const uk={
+deadline:'Дедлайн KAYSER',progress:'Прогрес',open:'Відкриті задачі',focus:'Фокус на сьогодні',days:'днів',
+kayserTitle:'KAYSER (Кесар) → Netflix / Sıradaki Hikâye (Наступна історія)',
+kayserNote:'Сценарна адаптація, пакет заявки та фінальна відправка мають бути завершені до 30 вересня 2026 року.',
+today:'Пріоритети на сьогодні',marketing:'Щоденний маркетинг видавництва',roadmap:'Усі задачі',
+showDone:'Показати виконані',hideDone:'Сховати виконані',add:'Додати',addTask:'Додати нову задачу…',
+sync:'Стан / резервна копія',localMode:'У цій першій версії стан чекбоксів зберігається у браузері цього пристрою. Сторінка працює онлайн, але між двома телефонами стан поки не синхронізується автоматично.',
+import:'Імпорт JSON',reset:'Скинути локальний стан',
+privacy:'Примітка: сторінка працює на public GitHub Pages, тому e-mail адреси та детальні фінансові суми не включено до вихідного коду. Чутливі деталі залишаються у щоденному Business Plan та e-mail.',
+all:'Усі',publisher:'Компанія / Видавництво',kayser:'KAYSER',zifir:'ZİFİR',books:'Книжки',marketingTab:'Маркетинг',apps:'Застосунки',career:'BKM / Дохід',backlog:'Backlog',
+high:'високий',medium:'середній',low:'низький',due:'Дедлайн',money:'дохід',monthly:'щомісяця',
+doneToday:'Виконано сьогодні',delete:'Видалити'
+};
+
+const seed=[
+{id:'p-name',cat:'publisher',p:1,title:{tr:'Yayınevi adını kesinleştir',uk:'Затвердити назву видавництва'},desc:{tr:'İsim → marka/domain/sosyal hesap uygunluğu → final karar.',uk:'Назва → перевірка бренду/домену/соцмереж → фінальне рішення.'}},
+{id:'p-structure',cat:'publisher',p:1,title:{tr:'Şirket yapısını ve mali müşavir sürecini netleştir',uk:'Визначити структуру компанії та процес із бухгалтером'},desc:{tr:'Aynı şirket yayınevi ve uygulama faaliyetlerini taşıyacak.',uk:'Одна компанія має покривати видавництво та застосунки.'}},
+{id:'p-domain',cat:'publisher',p:2,title:{tr:'Domain + kurumsal e-posta altyapısını aç',uk:'Відкрити домен + корпоративну e-mail інфраструктуру'}},
+{id:'p-bank',cat:'publisher',p:2,title:{tr:'Şirket banka/fatura/operasyon altyapısını tamamla',uk:'Завершити банківську, рахункову та операційну інфраструктуру компанії'}},
+
+{id:'k-master',cat:'kayser',p:1,due:'2026-09-20',title:{tr:'KAYSER kanonik metin sürümünü kilitle',uk:'Зафіксувати канонічну версію KAYSER (Кесар)'}},
+{id:'k-format',cat:'kayser',p:1,due:'2026-09-21',title:{tr:'Uyarlama formatını ve bölüm/episod yapısını kilitle',uk:'Зафіксувати формат адаптації та структуру епізодів'}},
+{id:'k-logline',cat:'kayser',p:1,due:'2026-09-22',title:{tr:'Logline + kısa sinopsis + uzun sinopsisi bitir',uk:'Завершити logline + короткий і розгорнутий синопсис'}},
+{id:'k-char',cat:'kayser',p:1,due:'2026-09-24',title:{tr:'Karakter dosyalarını ve başvuru metinlerini bitir',uk:'Завершити досьє персонажів і тексти заявки'}},
+{id:'k-en',cat:'kayser',p:1,due:'2026-09-26',title:{tr:'Gerekli İngilizce başvuru materyallerini tamamla',uk:'Завершити необхідні англомовні матеріали'}},
+{id:'k-pitch',cat:'kayser',p:1,due:'2026-09-28',title:{tr:'Pitch/görsel paket + hak/başvuru gerekliliklerini kontrol et',uk:'Перевірити pitch/візуальний пакет + права та вимоги заявки'}},
+{id:'k-send',cat:'kayser',p:1,due:'2026-09-30',title:{tr:'KAYSER başvurusunu final kontrol sonrası gönder',uk:'Після фінальної перевірки надіслати заявку KAYSER (Кесар)'}},
+
+{id:'z-master',cat:'zifir',p:1,title:{tr:'ZİFİR I+II master metni bitir',uk:'Завершити master-текст ZİFİR (Непроглядна темрява) I+II'},desc:{tr:'Mevcut Arkla/cehenneme iniş omurgasını bozmadan Temir–Kiştey–Alt Dünya katmanını geri getir.',uk:'Повернути Temir–Kiştey–Alt Dünya без руйнування чинної лінії Arkla/спуску до пекла.'}},
+{id:'z-cont',cat:'zifir',p:1,title:{tr:'Devamlılık ve roman borçları kontrolünü kapat',uk:'Закрити перевірку безперервності та невирішених сюжетних зобов’язань'}},
+{id:'z-prod',cat:'zifir',p:2,money:true,title:{tr:'ZİFİR yayın dosyası: edit + dizgi + kapak + baskı/dağıtım',uk:'Пакет видання ZİFİR: редактура + верстка + обкладинка + друк/дистрибуція'},desc:{tr:'Ticari hedef: yaklaşık 5.000 satış. Hedef garanti değildir.',uk:'Комерційна ціль: близько 5 000 продажів. Це не гарантія.'}},
+
+{id:'b-tcs',cat:'books',p:2,money:true,title:{tr:'Türk Canavarları Sözlüğü güncellenmiş baskısını hazırla',uk:'Підготувати оновлене видання Türk Canavarları Sözlüğü (Словник тюркських чудовиськ)'}},
+{id:'b-tcs6',cat:'books',p:3,monthly:true,title:{tr:'Türk Canavarları Sözlüğü 6. baskı durumunu aylık kontrol et',uk:'Щомісяця перевіряти 6-те видання Türk Canavarları Sözlüğü (Словник тюркських чудовиськ)'}},
+{id:'b-aykiri',cat:'books',p:2,title:{tr:'Aykırı Bilgelik yayın hazırlığını yap',uk:'Підготувати до видання Aykırı Bilgelik (Мудрість наперекір)'}},
+{id:'b-shard',cat:'books',p:3,title:{tr:'ShardEnd romanını yayın backlog’una yerleştir',uk:'Додати роман ShardEnd до видавничого backlog'}},
+
+{id:'m-ig',cat:'marketing',p:1,title:{tr:'Yayınevi Instagram hesabını aç',uk:'Відкрити Instagram видавництва'}},
+{id:'m-meta',cat:'marketing',p:2,title:{tr:'Meta Business Suite / Facebook altyapısını aç',uk:'Налаштувати Meta Business Suite / Facebook'}},
+{id:'m-tiktok',cat:'marketing',p:2,title:{tr:'TikTok hesabını aç',uk:'Відкрити TikTok'}},
+{id:'m-youtube',cat:'marketing',p:3,title:{tr:'YouTube hesabını aç',uk:'Відкрити YouTube'}},
+{id:'m-linkedin',cat:'marketing',p:3,title:{tr:'LinkedIn şirket sayfasını aç',uk:'Відкрити сторінку компанії в LinkedIn'}},
+{id:'m-mail',cat:'marketing',p:1,title:{tr:'Newsletter / mailing altyapısını kur',uk:'Налаштувати newsletter / mailing систему'}},
+{id:'m-analytics',cat:'marketing',p:2,title:{tr:'Analytics + Search Console ölçümünü kur',uk:'Налаштувати Analytics + Search Console'}},
+{id:'m-list',cat:'marketing',p:2,title:{tr:'Bookstagram / BookTok / basın iletişim listesini oluştur',uk:'Створити список контактів Bookstagram / BookTok / медіа'}},
+
+{id:'a-apple',cat:'apps',p:2,title:{tr:'Şirket kurulduktan sonra Apple Developer hesabını aç',uk:'Після створення компанії відкрити Apple Developer account'}},
+{id:'a-google',cat:'apps',p:2,title:{tr:'Şirket kurulduktan sonra Google Play Console hesabını aç',uk:'Після створення компанії відкрити Google Play Console'}},
+{id:'a-inventory',cat:'apps',p:3,title:{tr:'Fabella, Moment, 60sn Haber ve Manipülatif Haber için yayınlanabilirlik kontrolü yap',uk:'Перевірити готовність до публікації Fabella, Moment, 60sn Haber (Новини за 60 секунд) та Manipülatif Haber (Маніпулятивні новини)'}},
+{id:'a-booklove',cat:'apps',p:3,title:{tr:'BookLove kod tabanından türetilebilecek yeni işi tanımla',uk:'Визначити новий продукт, який можна швидко створити на кодовій базі BookLove'}},
+
+{id:'c-bkm',cat:'career',p:2,money:true,title:{tr:'BKM uygun pozisyonlarını takip et ve başvuruları sürdür',uk:'Відстежувати відповідні вакансії BKM та продовжувати подачі'}},
+{id:'c-recv',cat:'career',p:1,money:true,title:{tr:'BookLove alacağının tahsilatını takip et',uk:'Контролювати отримання заборгованості від BookLove'}},
+
+{id:'x-chaos',cat:'backlog',p:4,title:{tr:'Chaos Algorithm / kart oyunu',uk:'Chaos Algorithm / карткова гра'}},
+{id:'x-altkat',cat:'backlog',p:4,title:{tr:'alt/kat — Sayı 0',uk:'alt/kat (Нижній поверх) — Випуск 0'}},
+{id:'x-epika',cat:'backlog',p:4,title:{tr:'EPİKA',uk:'EPİKA (Епіка)'}},
+{id:'x-zehirli',cat:'backlog',p:4,title:{tr:'Zehirli Dipnot',uk:'Zehirli Dipnot (Отруйна виноска)'}},
+{id:'x-cehennem',cat:'backlog',p:4,title:{tr:'Cehennemde Hayatta Kalma Kılavuzu',uk:'Cehennemde Hayatta Kalma Kılavuzu (Посібник із виживання в пеклі)'}},
+{id:'x-games',cat:'backlog',p:4,title:{tr:'Anima / Bulut Atlası / Üç Havuz ve diğer oyun prototipleri',uk:'Anima / Bulut Atlası (Атлас хмар) / Üç Havuz (Три басейни) та інші ігрові прототипи'}}
+];
+
+const marketingTips=[
+{tr:['Sosyal içerik','Yayınevi kurulurken “neden bu yayınevi?” sorusunu cevaplayan 30–45 sn kurucu videosu taslağı çıkar.'],uk:['Соцконтент','Підготувати 30–45 с відео-задум: «Навіщо існує це видавництво?»']},
+{tr:['Sosyal içerik','ZİFİR’in eski baskısından bugüne “geri dönüş” temasını kullanan tek görsellik post hazırla.'],uk:['Соцконтент','Підготувати один пост про «повернення» ZİFİR (Непроглядна темрява) від старого видання до нового.']},
+{tr:['Sosyal içerik','Türk Canavarları Sözlüğü’nden tek bir yaratığı kısa bilgi + görsel formatında paylaşım serisine dönüştür.'],uk:['Соцконтент','Перетворити одну істоту з Türk Canavarları Sözlüğü (Словник тюркських чудовиськ) на коротку серію факт + візуал.']},
+{tr:['Sosyal içerik','KAYSER için spoiler vermeyen “bir şehir / üç imparatorluk / tek miras” ekseninde teaser fikri hazırla.'],uk:['Соцконтент','Створити teaser для KAYSER (Кесар) без спойлерів навколо ідеї «одне місто / три імперії / одна спадщина».']},
+{tr:['Sosyal içerik','Kuruluş sürecinden gerçek bir ayrıntıyı “yayıncı günlüğü” formatında paylaş.'],uk:['Соцконтент','Поділитися реальною деталлю процесу створення у форматі «щоденник видавця».']}
+];
+const mailTips=[
+{tr:['Mailing','İlk mailing listesi için “yeni baskılar + perde arkası + erken haber” vaadini tek cümlede yaz.'],uk:['Mailing','Сформулювати одним реченням обіцянку mailing list: нові видання + backstage + ранні новини.']},
+{tr:['Mailing','ZİFİR eski okurlarına özel yeniden lansman mailinin konu satırından 5 alternatif üret.'],uk:['Mailing','Підготувати 5 тем листа для перезапуску ZİFİR (Непроглядна темрява) для старих читачів.']},
+{tr:['Mailing','Yeni yayınevi için ilk welcome mailini 3 kısa paragraf olarak tasarla.'],uk:['Mailing','Скласти перший welcome-лист нового видавництва у 3 коротких абзацах.']},
+{tr:['Mailing','Bookstagram/medya için 120 kelimelik ilk temas maili taslağı hazırla.'],uk:['Mailing','Підготувати 120-слівний перший outreach-лист для Bookstagram/медіа.']}
+];
+const tutorialTips=[
+{tr:['Mini tutorial','Organik erişimde tek tek post değil seri formatı çalışır: aynı başlık, aynı görsel sistem, düzenli ritim. Önce 3 tekrar edilebilir seri tanımla.'],uk:['Міні-урок','Для органічного охоплення краще працюють серії, а не окремі пости: одна рубрика, одна візуальна система, стабільний ритм. Визначити 3 повторювані серії.']},
+{tr:['Mini tutorial','Kitap lansmanında takipçi sayısından çok “owned audience” değerlidir. Instagram’dan mailing listesine trafik taşıyan tek bir CTA kullan.'],uk:['Міні-урок','У книжковому запуску власна аудиторія важливіша за кількість підписників. Використовувати один CTA, що переводить людей з Instagram у mailing list.']},
+{tr:['Mini tutorial','Influencer outreach toplu spam değildir. İçeriği gerçekten kitapla kesişen küçük hesaplar daha yüksek dönüşüm verebilir; listeyi niş bazında segmentle.'],uk:['Міні-урок','Influencer outreach — не масовий spam. Невеликі нішеві акаунти часто дають кращу конверсію; сегментувати список за тематикою.']},
+{tr:['Mini tutorial','Her kampanyada tek ana metrik seç: ön sipariş, mailing kaydı veya satış. Aynı posttan her şeyi isteme.'],uk:['Міні-урок','Для кожної кампанії обрати одну головну метрику: передзамовлення, підписка на mailing або продаж. Не вимагати всього від одного поста.']}
+];
+const researchTips=[
+{tr:['Araştırma','Türkiye’de bağımsız yayınevlerinin en aktif 20 Bookstagram/BookTok hesabını çıkar ve erişim türlerine göre sınıflandır.'],uk:['Дослідження','Знайти 20 найактивніших Bookstagram/BookTok акаунтів для незалежних видавництв у Туреччині та класифікувати за типом охоплення.']},
+{tr:['Araştırma','Benzer türdeki 10 kitabın Instagram lansmanlarını incele: ilk duyuru ile satış linki arasında kaç içerik yayımlanmış?'],uk:['Дослідження','Проаналізувати Instagram-запуски 10 схожих книжок: скільки матеріалів було між першим анонсом і посиланням на продаж?']},
+{tr:['Araştırma','Rakip yayınevlerinin newsletter kayıt tekliflerini karşılaştır: kullanıcı neden e-posta versin?'],uk:['Дослідження','Порівняти пропозиції підписки на newsletter у конкурентних видавництв: чому користувач має залишити e-mail?']},
+{tr:['Araştırma','Kitap satış sayfalarında başlık, açıklama, kategori ve anahtar kelime kullanımını 10 örnek üzerinden incele.'],uk:['Дослідження','Проаналізувати на 10 прикладах назви, описи, категорії та ключові слова на сторінках продажу книжок.']}
+];
+
+let state=load();
+let lang=(new URLSearchParams(location.search).get('lang')==='uk'||state.lang==='uk')?'uk':'tr';
+let filter='all', showDone=false;
+function load(){try{return JSON.parse(localStorage.getItem(LS))||{done:{},custom:[],lang:'tr'}}catch(e){return{done:{},custom:[],lang:'tr'}}}
+function save(){state.lang=lang;localStorage.setItem(LS,JSON.stringify(state))}
+function t(k){return (lang==='uk'?uk:tr)[k]||k}
+function titleOf(x){return x.title?.[lang]||x.title?.tr||x.title||''}
+function descOf(x){return x.desc?.[lang]||x.desc?.tr||''}
+function allTasks(){return [...seed,...state.custom]}
+function isDone(id){return !!state.done[id]}
+function toggle(id,v){state.done[id]=v;save();render()}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function daysUntil(d){return Math.ceil((d-new Date())/86400000)}
+function dueScore(x){if(!x.due)return 999;return daysUntil(new Date(x.due+'T23:59:59+03:00'))}
+function taskScore(x){return (x.p||4)*100 + Math.max(-30,dueScore(x))}
+function taskHTML(x){
+ const done=isDone(x.id), desc=descOf(x), due=x.due;
+ return '<div class="task '+(done?'done':'')+'"><input type="checkbox" '+(done?'checked':'')+' onchange="toggle(\''+x.id+'\',this.checked)"><div class="grow"><div class="title">'+esc(titleOf(x))+'</div>'+(desc?'<div class="note">'+esc(desc)+'</div>':'')+'<div class="meta"><span class="pill '+((x.p||4)===1?'high':(x.p||4)===2?'now':'')+'">'+esc((x.p||4)===1?t('high'):(x.p||4)===2?t('medium'):t('low'))+'</span>'+(due?'<span class="pill deadline">'+t('due')+': '+due+'</span>':'')+(x.money?'<span class="pill money">'+t('money')+'</span>':'')+(x.monthly?'<span class="pill">'+t('monthly')+'</span>':'')+'</div></div>'+(x.custom?'<button class="btn small" onclick="delTask(\''+x.id+'\')">'+t('delete')+'</button>':'')+'</div>'
+}
+function renderLang(){
+ document.documentElement.lang=lang==='uk'?'uk':'tr';
+ document.querySelectorAll('[data-i]').forEach(el=>el.textContent=t(el.dataset.i));
+ document.querySelectorAll('[data-ph]').forEach(el=>el.placeholder=t(el.dataset.ph));
+ document.getElementById('langBtn').textContent=lang==='uk'?'TR':'UA';
+ document.getElementById('showDoneBtn').textContent=showDone?t('hideDone'):t('showDone');
+}
+function renderMetrics(){
+ const d=Math.max(0,daysUntil(DEADLINE));document.getElementById('daysLeft').textContent=d;document.getElementById('countBig').textContent=d;
+ const tasks=allTasks().filter(x=>x.cat!=='backlog');const done=tasks.filter(x=>isDone(x.id)).length;const pct=tasks.length?Math.round(done/tasks.length*100):0;
+ document.getElementById('pct').textContent=pct+'%';document.getElementById('openCount').textContent=tasks.length-done;
+ const focus=getFocus();document.getElementById('focusCount').textContent=focus.length;
+ const fd=focus.filter(x=>isDone(x.id)).length;document.getElementById('focusProgress').style.width=(focus.length?fd/focus.length*100:0)+'%';
+}
+function getFocus(){
+ const active=allTasks().filter(x=>!isDone(x.id)&&x.cat!=='backlog');
+ return active.sort((a,b)=>taskScore(a)-taskScore(b)).slice(0,5)
+}
+function renderFocus(){document.getElementById('focusTasks').innerHTML=getFocus().map(taskHTML).join('')||'<div class="note">✓</div>'}
+function catName(c){return ({all:t('all'),publisher:t('publisher'),kayser:t('kayser'),zifir:t('zifir'),books:t('books'),marketing:t('marketingTab'),apps:t('apps'),career:t('career'),backlog:t('backlog')})[c]}
+function renderTabs(){
+ const cats=['all','publisher','kayser','zifir','books','marketing','apps','career','backlog'];
+ document.getElementById('tabs').innerHTML=cats.map(c=>'<button class="tab '+(filter===c?'active':'')+'" onclick="filter=\''+c+'\';render()">'+esc(catName(c))+'</button>').join('')
+}
+function renderTasks(){
+ let arr=allTasks().filter(x=>(filter==='all'||x.cat===filter)&&(showDone||!isDone(x.id)));
+ arr.sort((a,b)=>(isDone(a.id)-isDone(b.id))||taskScore(a)-taskScore(b));
+ document.getElementById('taskList').innerHTML=arr.map(taskHTML).join('')||'<div class="note">—</div>'
+}
+function dailyPick(list,offset=0){const n=Math.floor(new Date(todayKey()+'T12:00:00').getTime()/86400000)+offset;return list[((n%list.length)+list.length)%list.length]}
+function dailyId(k){return 'daily:'+todayKey()+':'+k}
+function renderMarketing(){
+ const items=[dailyPick(marketingTips,0),dailyPick(mailTips,1),dailyPick(tutorialTips,2),dailyPick(researchTips,3)];
+ document.getElementById('marketingGrid').innerHTML=items.map(x=>'<div class="tip"><b>'+esc(x[lang][0])+'</b><span>'+esc(x[lang][1])+'</span></div>').join('');
+ const checks=[
+  {id:dailyId('social'),title:{tr:'Bugünkü sosyal içerik görevini tamamla',uk:'Виконати сьогоднішню задачу для соцмереж'}},
+  {id:dailyId('mail'),title:{tr:'Bugünkü mailing/CRM görevini tamamla',uk:'Виконати сьогоднішню mailing/CRM задачу'}},
+  {id:dailyId('learn'),title:{tr:'Mini tutorial + araştırma notunu tamamla',uk:'Завершити mini tutorial + research note'}}
+ ];
+ document.getElementById('marketingChecks').innerHTML=checks.map(x=>taskHTML({...x,cat:'marketing',p:2})).join('')
+}
+function render(){
+ renderLang();renderMetrics();renderFocus();renderTabs();renderTasks();renderMarketing();
+ document.getElementById('dateLine').textContent=new Intl.DateTimeFormat(lang==='uk'?'uk-UA':'tr-TR',{dateStyle:'full'}).format(new Date());
+}
+function delTask(id){state.custom=state.custom.filter(x=>x.id!==id);delete state.done[id];save();render()}
+function addTask(){
+ const input=document.getElementById('newTask'),v=input.value.trim();if(!v)return;
+ const id='custom-'+Date.now();state.custom.push({id,custom:true,cat:filter==='all'?'backlog':filter,p:3,title:{tr:v,uk:v}});input.value='';save();render()
+}
+document.getElementById('addTaskBtn').onclick=addTask;document.getElementById('newTask').addEventListener('keydown',e=>{if(e.key==='Enter')addTask()});
+document.getElementById('langBtn').onclick=()=>{lang=lang==='tr'?'uk':'tr';save();render()};
+document.getElementById('showDoneBtn').onclick=()=>{showDone=!showDone;render()};
+document.getElementById('exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='business-plan-state-'+todayKey()+'.json';a.click();URL.revokeObjectURL(a.href)};
+document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
+document.getElementById('importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{state=JSON.parse(r.result);save();render()}catch(err){alert('Invalid JSON')}};r.readAsText(f)};
+document.getElementById('resetBtn').onclick=()=>{if(confirm(lang==='uk'?'Скинути локальний стан?':'Yerel durum sıfırlansın mı?')){localStorage.removeItem(LS);state=load();render()}};
+render();
+</script>
+</body></html>
